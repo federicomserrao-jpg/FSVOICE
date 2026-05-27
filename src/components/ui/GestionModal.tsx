@@ -326,7 +326,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                 { label: 'Teléfono', value: cliente.telefono ?? '(sin dato)', field: 'telefono_verificado', corrField: 'telefono_corregido', type: 'tel' },
                 { label: 'Dirección', value: cliente.direccion ?? '(sin dato)', field: 'direccion_verificada', corrField: 'direccion_corregida', type: 'text' },
               ].map(item => (
-                <VerifyRow key={item.field} label={item.label} value={item.value} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} corrType={item.type} onVerify={v => setField(item.field, v)} onCorrect={v => setField(item.corrField, v)} />
+                <VerifyRow key={item.field} label={item.label} value={item.value} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} corrType={item.type} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />
               ))}
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
@@ -337,7 +337,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   { label: 'Modelo', value: cliente.modelo ?? '—', field: 'modelo_verificado', corrField: 'modelo_corregido' },
                   { label: 'Patente', value: cliente.patente ?? '—', field: 'patente_verificada', corrField: 'patente_corregida' },
                 ].map(item => (
-                  <VerifyRow key={item.field} label={item.label} value={item.value} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} corrType="text" onVerify={v => setField(item.field, v)} onCorrect={v => setField(item.corrField, v)} />
+                  <VerifyRow key={item.field} label={item.label} value={item.value} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} corrType="text" onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />
                 ))}
               </div>
             </div>
