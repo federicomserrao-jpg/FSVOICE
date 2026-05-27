@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #F5F4F0;
+    color: #1A1917;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3.5 h-[34px] rounded-sm text-[13px] font-medium border border-border bg-surface text-ink cursor-pointer transition-colors hover:bg-surface2;
+  }
+  .btn-primary {
+    @apply bg-ink border-ink text-white hover:opacity-90 hover:bg-ink;
+  }
+  .btn-sm {
+    @apply h-[28px] px-3 text-[12px];
+  }
+  .form-input {
+    @apply w-full bg-surface2 border border-border rounded-sm px-3 py-2 text-[13.5px] text-ink outline-none transition-colors focus:border-ink focus:bg-surface;
+  }
+  .form-label {
+    @apply text-[12px] font-medium text-ink2 mb-1 block;
+  }
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-medium;
+  }
+  .card {
+    @apply bg-surface border border-border rounded-[10px] p-4;
+  }
+  .section-title {
+    @apply text-[11px] font-semibold uppercase tracking-[0.8px] text-ink3 mb-3;
+  }
+}
