@@ -366,21 +366,21 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           <div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Atención del vendedor</div>
-              <RatingGroup question="¿Cómo calificaría la atención del vendedor? (1 al 5)" value={form.score_vendedor} onChange={v => setField('score_vendedor', v)} disabled={encuestaSaltable} />
-              <RadioGroup question="¿El vendedor respondió de manera clara todas sus consultas?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.vendedor_respondio_consultas} onChange={v => setField('vendedor_respondio_consultas', v)} disabled={encuestaSaltable} />
+              <RatingGroup question="¿Cómo calificaría la atención del vendedor? (1 al 5)" value={form.score_vendedor} onChange={(v: any) => setField('score_vendedor', v)} disabled={encuestaSaltable} />
+              <RadioGroup question="¿El vendedor respondió de manera clara todas sus consultas?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.vendedor_respondio_consultas} onChange={(v: any) => setField('vendedor_respondio_consultas', v)} disabled={encuestaSaltable} />
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Atención administrativa</div>
-              <RatingGroup question="¿Cómo calificaría la atención del área administrativa?" value={form.score_administrativo} onChange={v => setField('score_administrativo', v)} disabled={encuestaSaltable} />
+              <RatingGroup question="¿Cómo calificaría la atención del área administrativa?" value={form.score_administrativo} onChange={(v: any) => setField('score_administrativo', v)} disabled={encuestaSaltable} />
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Información sobre el vehículo</div>
-              <RadioGroup question="¿Recibió información clara sobre las funcionalidades del vehículo?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.info_vehiculo_clara} onChange={v => setField('info_vehiculo_clara', v)} disabled={encuestaSaltable} />
-              <RadioGroup question="¿Le explicaron el uso de las principales funciones del auto?" options={['si','no']} labels={['Sí','No']} value={form.explicaron_funciones} onChange={v => setField('explicaron_funciones', v)} disabled={encuestaSaltable} />
+              <RadioGroup question="¿Recibió información clara sobre las funcionalidades del vehículo?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.info_vehiculo_clara} onChange={(v: any) => setField('info_vehiculo_clara', v)} disabled={encuestaSaltable} />
+              <RadioGroup question="¿Le explicaron el uso de las principales funciones del auto?" options={['si','no']} labels={['Sí','No']} value={form.explicaron_funciones} onChange={(v: any) => setField('explicaron_funciones', v)} disabled={encuestaSaltable} />
             </div>
             <div style={{ padding: '20px 24px' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Postventa</div>
-              <RadioGroup question="¿Le informaron sobre los talleres oficiales y servicios disponibles?" options={['si','no']} labels={['Sí','No']} value={form.info_postventa} onChange={v => setField('info_postventa', v)} disabled={encuestaSaltable} />
+              <RadioGroup question="¿Le informaron sobre los talleres oficiales y servicios disponibles?" options={['si','no']} labels={['Sí','No']} value={form.info_postventa} onChange={(v: any) => setField('info_postventa', v)} disabled={encuestaSaltable} />
             </div>
             {encuestaSaltable && <div style={{ background: '#DDE9F8', border: '1px solid #85B7EB', margin: '0 24px 16px', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#1B4F8A' }}>Las preguntas no son obligatorias para el estado "{ESTADO_LABELS[form.estado]}".</div>}
           </div>
@@ -391,12 +391,12 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           <div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Contacto posterior</div>
-              <RadioGroup question="Luego de la compra, ¿tuvo que volver a comunicarse con la concesionaria?" options={['si','no']} labels={['Sí','No']} value={form.volvio_contactar} onChange={v => setField('volvio_contactar', v)} disabled={encuestaSaltable} />
-              {form.volvio_contactar === 'si' && <RatingGroup question="¿Cómo calificaría la atención en ese contacto posterior?" value={form.score_contacto_posterior} onChange={v => setField('score_contacto_posterior', v)} disabled={encuestaSaltable} />}
+              <RadioGroup question="Luego de la compra, ¿tuvo que volver a comunicarse con la concesionaria?" options={['si','no']} labels={['Sí','No']} value={form.volvio_contactar} onChange={(v: any) => setField('volvio_contactar', v)} disabled={encuestaSaltable} />
+              {form.volvio_contactar === 'si' && <RatingGroup question="¿Cómo calificaría la atención en ese contacto posterior?" value={form.score_contacto_posterior} onChange={(v: any) => setField('score_contacto_posterior', v)} disabled={encuestaSaltable} />}
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Recomendación</div>
-              <RatingGroup question="¿Qué tan probable es que recomiende la concesionaria? (1 al 5)" value={form.score_recomendacion} onChange={v => setField('score_recomendacion', v)} disabled={encuestaSaltable} labels={['Muy improbable','Improbable','Neutral','Probable','Muy probable']} />
+              <RatingGroup question="¿Qué tan probable es que recomiende la concesionaria? (1 al 5)" value={form.score_recomendacion} onChange={(v: any) => setField('score_recomendacion', v)} disabled={encuestaSaltable} labels={['Muy improbable','Improbable','Neutral','Probable','Muy probable']} />
             </div>
             <div style={{ padding: '20px 24px' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '10px' }}>Observaciones libres</div>
