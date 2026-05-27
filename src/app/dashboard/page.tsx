@@ -1,11 +1,15 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import ClientesList from '@/components/ui/ClientesList'
 import { Perfil } from '@/types'
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams()
+  const filtroInicial = searchParams.get('filtro') ?? 'todos'
+
   const [clientes, setClientes] = useState<any[]>([])
   const [gestiones, setGestiones] = useState<any[]>([])
   const [perfil, setPerfil] = useState<Perfil | null>(null)
@@ -34,7 +38,6 @@ export default function DashboardPage() {
     const lista = c ?? []
     setClientes(lista)
 
-    // Cargar todas las gestiones para correcciones y export
     const { data: g } = await supabase
       .from('gestiones')
       .select('*, cliente:clientes(*), operador:perfiles(nombre)')
@@ -59,5 +62,14 @@ export default function DashboardPage() {
     </div>
   )
 
-  return <ClientesList clientes={clientes} gestiones={gestiones} perfil={perfil!} stats={stats} onRefresh={load} />
+  return (
+    <ClientesList
+      clientes={clientes}
+      gestiones={gestiones}
+      perfil={perfil!}
+      stats={stats}
+      filtroInicial={filtroInicial}
+      onRefresh={load}
+    />
+  )
 }
