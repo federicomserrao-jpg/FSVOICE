@@ -9,7 +9,7 @@ import { Perfil } from '@/types'
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     async function checkAuth() {
@@ -20,14 +20,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return
       }
       const { data } = await supabase.from('perfiles').select('*').eq('id', user.id).single()
-      setPerfil(data)
-      setLoading(false)
+      setPerfil(data as Perfil)
+      setReady(true)
     }
     checkAuth()
   }, [router])
 
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F5F4F0', fontSize: '14px', color: '#9E9C95' }}>
+  if (!ready) return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: '#F5F4F0', fontSize: '14px', color: '#9E9C95',
+      fontFamily: 'DM Sans, sans-serif'
+    }}>
       Cargando...
     </div>
   )
