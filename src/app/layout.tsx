@@ -1,26 +1,15 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
-import Sidebar from '@/components/layout/Sidebar'
-import { Perfil } from '@/types'
+import type { Metadata } from 'next'
+import './globals.css'
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export const metadata: Metadata = {
+  title: 'FSVOICE – Car One',
+  description: 'Sistema de gestión de encuestas CSAT – Car One',
+}
 
-  if (!user) redirect('/login')
-
-  const { data: perfil } = await supabase
-    .from('perfiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar perfil={perfil as Perfil | null} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {children}
-      </div>
-    </div>
+    <html lang="es">
+      <body>{children}</body>
+    </html>
   )
 }
