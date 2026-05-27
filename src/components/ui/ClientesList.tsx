@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 interface Props {
+  onRefresh?: () => void
   clientes: any[]
   perfil: Perfil
   stats: { total: number; contactados: number; rellamar: number; pendientes: number; avgScore: string | null }
@@ -25,7 +26,7 @@ const FILTROS = [
   { key: 'no_es_titular', label: 'No es titular' },
 ]
 
-export default function ClientesList({ clientes, perfil, stats, filtroInicial, searchInicial }: Props) {
+export default function ClientesList({ clientes, perfil, stats, filtroInicial, searchInicial, onRefresh }: Props) {
   const router = useRouter()
   const [filtro, setFiltro] = useState(filtroInicial ?? 'todos')
   const [search, setSearch] = useState(searchInicial ?? '')
@@ -193,7 +194,7 @@ export default function ClientesList({ clientes, perfil, stats, filtroInicial, s
         <GestionModal
           cliente={clienteSeleccionado}
           perfil={perfil}
-          onClose={() => { setClienteSeleccionado(null); router.refresh() }}
+          onClose={() => { setClienteSeleccionado(null); if (onRefresh) onRefresh() }}
         />
       )}
     </>
