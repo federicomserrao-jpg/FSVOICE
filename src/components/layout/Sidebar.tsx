@@ -3,27 +3,11 @@
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Perfil } from '@/types'
+import Image from 'next/image'
 
 interface SidebarProps {
   perfil: Perfil | null
 }
-
-const navItems = [
-  {
-    section: 'Operador',
-    items: [
-      { label: 'Mis casos', href: '/dashboard', icon: TableIcon },
-      { label: 'Rellamar hoy', href: '/dashboard?filtro=rellamar', icon: PhoneIcon },
-    ]
-  },
-  {
-    section: 'Supervisión',
-    items: [
-      { label: 'Dashboard', href: '/metricas', icon: GridIcon },
-      { label: 'Gestión admin', href: '/admin', icon: SettingsIcon, adminOnly: true },
-    ]
-  }
-]
 
 export default function Sidebar({ perfil }: SidebarProps) {
   const router = useRouter()
@@ -37,77 +21,60 @@ export default function Sidebar({ perfil }: SidebarProps) {
   }
 
   const initials = perfil?.nombre
-    ? perfil.nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    ? perfil.nombre.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : 'US'
 
+  const navItems = [
+    { section: 'Operador', items: [
+      { label: 'Mis casos', href: '/dashboard', icon: TableIcon },
+      { label: 'Rellamar hoy', href: '/dashboard?filtro=rellamar', icon: PhoneIcon },
+    ]},
+    { section: 'Supervisión', items: [
+      { label: 'Dashboard', href: '/metricas', icon: GridIcon },
+      ...(perfil?.rol === 'admin' ? [{ label: 'Gestión admin', href: '/admin', icon: SettingsIcon }] : []),
+    ]},
+  ]
+
   return (
-    <nav style={{
-      width: '240px', flexShrink: 0, background: '#1A1917', color: '#F5F4F0',
-      display: 'flex', flexDirection: 'column'
-    }}>
+    <nav style={{ width: '240px', flexShrink: 0, background: '#1A1917', color: '#F5F4F0', display: 'flex', flexDirection: 'column' }}>
       {/* Logo */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <span style={{ fontSize: '17px', fontWeight: '600', letterSpacing: '-0.3px' }}>FSVOICE</span>
-        <small style={{
-          display: 'block', fontSize: '11px', opacity: 0.5, marginTop: '2px',
-          fontFamily: 'DM Mono, monospace', letterSpacing: '0.5px', textTransform: 'uppercase'
-        }}>Car One</small>
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Image src="/logo-carone.png" alt="Car One" width={36} height={36} style={{ borderRadius: '8px', flexShrink: 0 }} />
+        <div>
+          <span style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.3px', display: 'block' }}>FSVOICE</span>
+          <small style={{ fontSize: '10px', opacity: 0.5, fontFamily: 'DM Mono, monospace', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Car One</small>
+        </div>
       </div>
 
       {/* Nav */}
       <div style={{ flex: 1, padding: '12px 0' }}>
         {navItems.map(group => (
           <div key={group.section}>
-            {group.items
-              .filter(item => !('adminOnly' in item && item.adminOnly && perfil?.rol !== 'admin'))
-              .map(item => {
-                const Icon = item.icon
-                const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-                return (
-                  <button
-                    key={item.href}
-                    onClick={() => router.push(item.href)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '9px 20px', width: '100%', background: active ? 'rgba(255,255,255,0.14)' : 'none',
-                      border: 'none', color: '#F5F4F0', cursor: 'pointer',
-                      fontSize: '13.5px', opacity: active ? 1 : 0.7,
-                      fontWeight: active ? 500 : 400, textAlign: 'left',
-                      transition: 'background 0.15s',
-                      fontFamily: 'DM Sans, sans-serif'
-                    }}
-                    onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                    onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.opacity = '0.7' }}
-                  >
-                    <Icon size={16} />
-                    {item.label}
-                  </button>
-                )
-              })}
+            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.4, padding: '12px 20px 6px', fontFamily: 'DM Mono, monospace' }}>{group.section}</div>
+            {group.items.map(item => {
+              const Icon = item.icon
+              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              return (
+                <button key={item.href} onClick={() => router.push(item.href)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 20px', width: '100%', background: active ? 'rgba(255,255,255,0.14)' : 'none', border: 'none', color: '#F5F4F0', cursor: 'pointer', fontSize: '13.5px', opacity: active ? 1 : 0.7, fontWeight: active ? 500 : 400, textAlign: 'left', fontFamily: 'DM Sans, sans-serif' }}>
+                  <Icon size={16} />
+                  {item.label}
+                </button>
+              )
+            })}
           </div>
         ))}
       </div>
 
       {/* User */}
       <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{
-          width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '12px', fontWeight: '600', flexShrink: 0
-        }}>{initials}</div>
+        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>{initials}</div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <strong style={{ fontSize: '12.5px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {perfil?.nombre || 'Usuario'}
-          </strong>
+          <strong style={{ fontSize: '12.5px', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{perfil?.nombre || 'Usuario'}</strong>
           <span style={{ fontSize: '11px', opacity: 0.5, textTransform: 'capitalize' }}>{perfil?.rol}</span>
         </div>
-        <button
-          onClick={handleLogout}
-          title="Cerrar sesión"
-          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '4px', fontSize: '16px', lineHeight: 1 }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.4)'}
-        >↪</button>
+        <button onClick={handleLogout} title="Cerrar sesión"
+          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '4px', fontSize: '16px', lineHeight: 1 }}>↪</button>
       </div>
     </nav>
   )
