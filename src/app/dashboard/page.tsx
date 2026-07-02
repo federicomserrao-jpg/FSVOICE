@@ -31,6 +31,7 @@ export default function DashboardPage() {
       .from('clientes')
       .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion)')
       .order('created_at', { ascending: false })
+.range(0, 1999)
 
     if (p.rol === 'operador') query = query.eq('operador_asignado', user.id)
 
