@@ -24,13 +24,13 @@ export default function DashboardPage() {
     setPerfil(p as Perfil)
 
     // Cargar todos los clientes (sin filtro por operador) con paginación
-    const { data: c } = await supabase
-      .from('clientes')
-      .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion)')
-      .order('apellido', { ascending: true })
-      .range(0, 1999)
+const { data: c } = await supabase
+  .from('clientes')
+  .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion)')
+  .order('apellido', { ascending: true })
+  .range(0, 1999)
 
-    const lista = c ?? []
+    const lista = c
     setClientes(lista)
 
     // Cargar gestiones para correcciones y export
