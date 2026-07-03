@@ -30,7 +30,7 @@ const { data: c } = await supabase
   .order('apellido', { ascending: true })
   .range(0, 1999)
 
-    const lista = c
+    const lista = c ?? []
     setClientes(lista)
 
     // Cargar gestiones para correcciones y export
