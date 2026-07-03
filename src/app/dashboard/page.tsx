@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -9,13 +8,10 @@ import { Perfil } from '@/types'
 export default function DashboardPage() {
   const searchParams = useSearchParams()
   const filtroInicial = searchParams.get('filtro') ?? 'todos'
-
   const [clientes, setClientes] = useState<any[]>([])
   const [gestiones, setGestiones] = useState<any[]>([])
   const [perfil, setPerfil] = useState<Perfil | null>(null)
-  const [stats, setStats] = useState({
-    total: 0, contactados: 0, rellamar: 0, pendientes: 0, avgScore: null as string | null
-  })
+  const [stats, setStats] = useState({ total: 0, contactados: 0, rellamar: 0, pendientes: 0, avgScore: null as string | null })
   const [ready, setReady] = useState(false)
 
   const load = useCallback(async () => {
@@ -27,21 +23,21 @@ export default function DashboardPage() {
     if (!p) return
     setPerfil(p as Perfil)
 
-    let query = supabase
+    // Cargar todos los clientes (sin filtro por operador) con paginación
+    const { data: c } = await supabase
       .from('clientes')
       .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion)')
-      .order('created_at', { ascending: false })
-.range(0, 1999)
+      .order('apellido', { ascending: true })
+      .range(0, 1999)
 
-    if (p.rol === 'operador') query = query.eq('operador_asignado', user.id)
-
-    const { data: c } = await query
     const lista = c ?? []
     setClientes(lista)
 
+    // Cargar gestiones para correcciones y export
     const { data: g } = await supabase
       .from('gestiones')
       .select('*, cliente:clientes(*), operador:perfiles(nombre)')
+      .range(0, 1999)
     setGestiones(g ?? [])
 
     const total = lista.length
@@ -57,20 +53,7 @@ export default function DashboardPage() {
 
   useEffect(() => { load() }, [load])
 
-  if (!ready) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '14px', color: '#9E9C95', fontFamily: 'DM Sans, sans-serif' }}>
-      Cargando clientes...
-    </div>
-  )
+  if (!ready) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '14px', color: '#9E9C95', fontFamily: 'DM Sans, sans-serif' }}>Cargando clientes...</div>
 
-  return (
-    <ClientesList
-      clientes={clientes}
-      gestiones={gestiones}
-      perfil={perfil!}
-      stats={stats}
-      filtroInicial={filtroInicial}
-      onRefresh={load}
-    />
-  )
+  return <ClientesList clientes={clientes} gestiones={gestiones} perfil={perfil!} stats={stats} filtroInicial={filtroInicial} onRefresh={load} />
 }
