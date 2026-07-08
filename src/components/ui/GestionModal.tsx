@@ -2,14 +2,19 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Perfil, EstadoGestion, ESTADO_LABELS } from '@/types'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 
 interface Props { cliente: any; perfil: Perfil; onClose: () => void }
 
 const ESTADOS: { value: EstadoGestion; label: string }[] = [
-  { value: 'encuestado', label: 'Encuestado' }, { value: 'fin_gestion', label: 'Fin de gestión' },
-  { value: 'no_acepta_encuesta', label: 'No acepta encuesta' }, { value: 'rellamar', label: 'Rellamar' },
-  { value: 'pendiente', label: 'Pendiente' }, { value: 'no_es_titular', label: 'No es titular' },
+  { value: 'encuestado', label: 'Encuestado' },
+  { value: 'fin_gestion', label: 'Fin de gestión' },
+  { value: 'no_acepta_encuesta', label: 'No acepta encuesta' },
+  { value: 'rellamar', label: 'Rellamar' },
+  { value: 'sin_contacto', label: 'Sin contacto' },
+  { value: 'numero_equivocado', label: 'Número equivocado' },
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'no_es_titular', label: 'No es titular' },
 ]
 
 const INIT = {
@@ -44,7 +49,8 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
     const { data } = await supabase.from('gestiones').select('*').eq('cliente_id', cliente.id).order('created_at', { ascending: false }).limit(1)
     if (data && data.length > 0) {
       const g = data[0]; setGestionExistente(g)
-      setForm(prev => ({ ...prev, estado: g.estado ?? 'pendiente', fecha_rellamar: g.fecha_rellamar ?? '', motivo_rellamar: g.motivo_rellamar ?? '', observaciones: g.observaciones ?? '',
+      setForm(prev => ({ ...prev,
+        estado: g.estado ?? 'pendiente', fecha_rellamar: g.fecha_rellamar ?? '', motivo_rellamar: g.motivo_rellamar ?? '', observaciones: g.observaciones ?? '',
         nombre_verificado: g.nombre_verificado, nombre_corregido: g.nombre_corregido ?? '',
         email_verificado: g.email_verificado, email_corregido: g.email_corregido ?? '',
         telefono_verificado: g.telefono_verificado, telefono_corregido: g.telefono_corregido ?? '',
@@ -71,6 +77,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       [['nombre_verificado','Nombre'],['email_verificado','Email'],['telefono_verificado','Teléfono'],['direccion_verificada','Dirección'],['patente_verificada','Patente'],['marca_verificada','Marca'],['modelo_verificado','Modelo']].forEach(([f,l]) => { if ((form as any)[f] === null) errs.push(`Verificá: ${l}`) })
       if (form.email_verificado === false && !form.email_corregido.trim()) errs.push('Ingresá el email correcto')
       if (form.telefono_verificado === false && !form.telefono_corregido.trim()) errs.push('Ingresá el teléfono correcto')
+      if (form.estado === 'rellamar' && !form.fecha_rellamar) errs.push('Ingresá la fecha y hora de rellamado')
     }
     if (s === 2 && ['encuestado','fin_gestion'].includes(form.estado)) {
       if (!form.score_vendedor) errs.push('Score vendedor requerido')
@@ -110,7 +117,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       explicaron_funciones: form.explicaron_funciones || null, info_postventa: form.info_postventa || null,
       volvio_contactar: form.volvio_contactar || null, score_contacto_posterior: form.score_contacto_posterior,
       score_recomendacion: form.score_recomendacion,
-      completado: ['encuestado','fin_gestion','no_acepta_encuesta','no_es_titular'].includes(form.estado),
+      completado: ['encuestado','fin_gestion','no_acepta_encuesta','no_es_titular','numero_equivocado'].includes(form.estado),
     }
     try {
       if (gestionExistente) {
@@ -130,15 +137,18 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
   }
 
   const saltable = !['encuestado','fin_gestion'].includes(form.estado)
+  const estadosRapidos = ['sin_contacto','numero_equivocado','no_es_titular','no_acepta_encuesta']
+  const esCierreRapido = estadosRapidos.includes(form.estado)
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,10,8,0.55)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
 
+        {/* HEADER */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E0D8', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
           <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>{cliente.apellido}, {cliente.nombre}</h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>{cliente.apellido}{cliente.nombre ? `, ${cliente.nombre}` : ''}</h2>
             <p style={{ fontSize: '12.5px', color: '#6B6A64', marginTop: '4px' }}>{cliente.marca} {cliente.modelo} · {cliente.concesionaria}{cliente.fecha_compra && ` · Compra: ${format(new Date(cliente.fecha_compra), 'dd/MM/yyyy')}`}</p>
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
               {cliente.telefono && <a href={`tel:${cliente.telefono}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', color: '#1B4F8A', textDecoration: 'none', background: '#DDE9F8', padding: '3px 10px', borderRadius: '20px' }}>📞 {cliente.telefono}</a>}
@@ -152,6 +162,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           </div>
         </div>
 
+        {/* HISTORIAL */}
         {showHistorial && (
           <div style={{ background: '#F0EFE9', borderBottom: '1px solid #E2E0D8', padding: '16px 24px', maxHeight: '180px', overflowY: 'auto' }}>
             <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '10px' }}>Historial</div>
@@ -165,6 +176,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           </div>
         )}
 
+        {/* STEPS */}
         <div style={{ display: 'flex', padding: '16px 24px', background: '#F0EFE9', borderBottom: '1px solid #E2E0D8' }}>
           {[{n:1,label:'Validación'},{n:2,label:'Experiencia'},{n:3,label:'Post-compra'}].map((s,i) => (
             <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
@@ -180,12 +192,13 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
 
         {errors.length > 0 && <div style={{ background: '#FAE0E0', border: '1px solid #F09595', margin: '16px 24px 0', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#8B2020' }}>{errors.map(e => <div key={e}>• {e}</div>)}</div>}
 
+        {/* STEP 1 */}
         {step === 1 && (
           <div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>Verificar datos del cliente</div>
               {[
-                { label: 'Nombre completo', value: `${cliente.nombre} ${cliente.apellido}`, field: 'nombre_verificado', corrField: 'nombre_corregido', type: 'text' },
+                { label: 'Nombre completo', value: `${cliente.nombre ?? ''} ${cliente.apellido ?? ''}`.trim(), field: 'nombre_verificado', corrField: 'nombre_corregido', type: 'text' },
                 { label: 'Email', value: cliente.email ?? '(sin dato)', field: 'email_verificado', corrField: 'email_corregido', type: 'email' },
                 { label: 'Teléfono', value: cliente.telefono ?? '(sin dato)', field: 'telefono_verificado', corrField: 'telefono_corregido', type: 'tel' },
                 { label: 'Dirección', value: cliente.direccion ?? '(sin dato)', field: 'direccion_verificada', corrField: 'direccion_corregida', type: 'text' },
@@ -218,57 +231,76 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   <input type="text" value={form.motivo_rellamar} onChange={e => setField('motivo_rellamar', e.target.value)} placeholder="Motivo..." style={{ flex: 1, border: '1px solid #D08700', borderRadius: '6px', padding: '6px 10px', fontSize: '13px', fontFamily: 'DM Sans', background: '#fff', outline: 'none' }} />
                 </div>
               )}
+              {esCierreRapido && (
+                <div style={{ marginTop: '10px', background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#0369A1' }}>
+                  💡 Con este estado podés guardar directamente sin completar la encuesta. Agregá observaciones si lo creés necesario.
+                </div>
+              )}
             </div>
+            {/* Observaciones rápidas para cierres sin encuesta */}
+            {esCierreRapido && (
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid #E2E0D8' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '10px' }}>Observaciones</div>
+                <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Detalle adicional..." style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: '13.5px', resize: 'vertical', minHeight: '70px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+              </div>
+            )}
           </div>
         )}
 
+        {/* STEP 2 */}
         {step === 2 && (
           <div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
-              <SectionTitle>Atención del vendedor</SectionTitle>
+              <STitle>Atención del vendedor</STitle>
               <RatingGroup question="¿Cómo calificaría la atención del vendedor? (1 al 5)" value={form.score_vendedor} onChange={(v: number) => setField('score_vendedor', v)} disabled={saltable} />
               <RadioGroup question="¿El vendedor respondió de manera clara todas sus consultas?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.vendedor_respondio_consultas} onChange={(v: string) => setField('vendedor_respondio_consultas', v)} disabled={saltable} />
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
-              <SectionTitle>Atención administrativa</SectionTitle>
+              <STitle>Atención administrativa</STitle>
               <RatingGroup question="¿Cómo calificaría la atención del área administrativa?" value={form.score_administrativo} onChange={(v: number) => setField('score_administrativo', v)} disabled={saltable} />
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
-              <SectionTitle>Información sobre el vehículo</SectionTitle>
+              <STitle>Información sobre el vehículo</STitle>
               <RadioGroup question="¿Recibió información clara sobre las funcionalidades del vehículo?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.info_vehiculo_clara} onChange={(v: string) => setField('info_vehiculo_clara', v)} disabled={saltable} />
               <RadioGroup question="¿Le explicaron el uso de las principales funciones del auto?" options={['si','no']} labels={['Sí','No']} value={form.explicaron_funciones} onChange={(v: string) => setField('explicaron_funciones', v)} disabled={saltable} />
             </div>
             <div style={{ padding: '20px 24px' }}>
-              <SectionTitle>Postventa</SectionTitle>
+              <STitle>Postventa</STitle>
               <RadioGroup question="¿Le informaron sobre los talleres oficiales y servicios disponibles?" options={['si','no']} labels={['Sí','No']} value={form.info_postventa} onChange={(v: string) => setField('info_postventa', v)} disabled={saltable} />
             </div>
             {saltable && <div style={{ background: '#DDE9F8', border: '1px solid #85B7EB', margin: '0 24px 16px', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#1B4F8A' }}>Las preguntas no son obligatorias para el estado "{ESTADO_LABELS[form.estado]}".</div>}
           </div>
         )}
 
+        {/* STEP 3 */}
         {step === 3 && (
           <div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
-              <SectionTitle>Contacto posterior</SectionTitle>
+              <STitle>Contacto posterior</STitle>
               <RadioGroup question="Luego de la compra, ¿tuvo que volver a comunicarse con la concesionaria?" options={['si','no']} labels={['Sí','No']} value={form.volvio_contactar} onChange={(v: string) => setField('volvio_contactar', v)} disabled={saltable} />
               {form.volvio_contactar === 'si' && <RatingGroup question="¿Cómo calificaría la atención en ese contacto posterior?" value={form.score_contacto_posterior} onChange={(v: number) => setField('score_contacto_posterior', v)} disabled={saltable} />}
             </div>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #E2E0D8' }}>
-              <SectionTitle>Recomendación</SectionTitle>
+              <STitle>Recomendación</STitle>
               <RatingGroup question="¿Qué tan probable es que recomiende la concesionaria? (1 al 5)" value={form.score_recomendacion} onChange={(v: number) => setField('score_recomendacion', v)} disabled={saltable} labels={['Muy improbable','Improbable','Neutral','Probable','Muy probable']} />
             </div>
             <div style={{ padding: '20px 24px' }}>
-              <SectionTitle>Observaciones libres</SectionTitle>
-              <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Comentarios adicionales del cliente..." style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: '13.5px', resize: 'vertical', minHeight: '80px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' }} />
+              <STitle>Observaciones libres</STitle>
+              <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Comentarios adicionales del cliente..." style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: '13.5px', resize: 'vertical', minHeight: '80px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
             </div>
-            {saltable && <div style={{ background: '#DDE9F8', border: '1px solid #85B7EB', margin: '0 24px 16px', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#1B4F8A' }}>Las preguntas no son obligatorias para el estado "{ESTADO_LABELS[form.estado]}".</div>}
+            {saltable && <div style={{ background: '#DDE9F8', border: '1px solid #85B7EB', margin: '0 24px 16px', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', color: '#1B4F8A' }}>Las preguntas no son obligatorias para "{ESTADO_LABELS[form.estado]}".</div>}
           </div>
         )}
 
+        {/* FOOTER */}
         <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E0D8', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F0EFE9' }}>
           <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #E2E0D8', background: '#fff', color: '#1A1917', fontFamily: 'DM Sans' }}>Cancelar</button>
           {step > 1 && <button onClick={prevStep} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #E2E0D8', background: '#fff', color: '#1A1917', fontFamily: 'DM Sans' }}>← Anterior</button>}
-          {step < 3 && <button onClick={nextStep} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none', background: '#1A1917', color: '#fff', fontFamily: 'DM Sans' }}>Siguiente →</button>}
+          {/* Si es cierre rápido, en step 1 mostrar guardar directo */}
+          {step === 1 && esCierreRapido && (
+            <button onClick={guardar} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', border: 'none', background: '#1A1917', color: '#fff', fontFamily: 'DM Sans', opacity: saving ? 0.7 : 1 }}>{saving ? 'Guardando...' : '✓ Guardar gestión'}</button>
+          )}
+          {step < 3 && !esCierreRapido && <button onClick={nextStep} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none', background: '#1A1917', color: '#fff', fontFamily: 'DM Sans' }}>Siguiente →</button>}
           {step === 3 && <button onClick={guardar} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer', border: 'none', background: '#1A1917', color: '#fff', fontFamily: 'DM Sans', opacity: saving ? 0.7 : 1 }}>{saving ? 'Guardando...' : '✓ Guardar gestión'}</button>}
         </div>
       </div>
@@ -276,7 +308,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
   )
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function STitle({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '14px' }}>{children}</div>
 }
 
@@ -289,7 +321,7 @@ function VerifyRow({ label, value, verified, corregido, corrType, onVerify, onCo
         <button onClick={() => onVerify(true)} style={{ padding: '4px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 500, border: '1px solid', cursor: 'pointer', fontFamily: 'DM Sans', borderColor: verified === true ? '#2D6A4F' : '#E2E0D8', background: verified === true ? '#D8F3DC' : '#fff', color: verified === true ? '#2D6A4F' : '#6B6A64' }}>Sí ✓</button>
         <button onClick={() => onVerify(false)} style={{ padding: '4px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 500, border: '1px solid', cursor: 'pointer', fontFamily: 'DM Sans', borderColor: verified === false ? '#8B2020' : '#E2E0D8', background: verified === false ? '#FAE0E0' : '#fff', color: verified === false ? '#8B2020' : '#6B6A64' }}>No ✗</button>
       </div>
-      {verified === false && <input type={corrType} value={corregido} onChange={e => onCorrect(e.target.value)} placeholder={`${label} correcto...`} style={{ width: '100%', marginTop: '6px', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '7px 11px', fontFamily: 'DM Mono', fontSize: '13px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' }} />}
+      {verified === false && <input type={corrType} value={corregido} onChange={e => onCorrect(e.target.value)} placeholder={`${label} correcto...`} style={{ width: '100%', marginTop: '6px', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '7px 11px', fontFamily: 'DM Mono', fontSize: '13px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />}
     </div>
   )
 }

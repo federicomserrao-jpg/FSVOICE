@@ -1,13 +1,27 @@
 export type Rol = 'operador' | 'admin'
-export type EstadoGestion = 'pendiente' | 'encuestado' | 'fin_gestion' | 'no_acepta_encuesta' | 'rellamar' | 'no_es_titular'
+export type EstadoGestion = 
+  | 'pendiente' 
+  | 'encuestado' 
+  | 'fin_gestion' 
+  | 'no_acepta_encuesta' 
+  | 'rellamar' 
+  | 'no_es_titular'
+  | 'numero_equivocado'
+  | 'sin_contacto'
 
 export interface Perfil {
   id: string; nombre: string; email: string; rol: Rol; activo: boolean; created_at: string
 }
 
 export const ESTADO_LABELS: Record<EstadoGestion, string> = {
-  pendiente: 'Pendiente', encuestado: 'Encuestado', fin_gestion: 'Fin de gestión',
-  no_acepta_encuesta: 'No acepta encuesta', rellamar: 'Rellamar', no_es_titular: 'No es titular',
+  pendiente: 'Pendiente',
+  encuestado: 'Encuestado',
+  fin_gestion: 'Fin de gestión',
+  no_acepta_encuesta: 'No acepta encuesta',
+  rellamar: 'Rellamar',
+  no_es_titular: 'No es titular',
+  numero_equivocado: 'Número equivocado',
+  sin_contacto: 'Sin contacto',
 }
 
 export const ESTADO_COLORS: Record<EstadoGestion, { bg: string; color: string }> = {
@@ -17,4 +31,6 @@ export const ESTADO_COLORS: Record<EstadoGestion, { bg: string; color: string }>
   no_acepta_encuesta: { bg: '#FAE0E0', color: '#8B2020' },
   rellamar: { bg: '#FFF3CD', color: '#7D4F00' },
   no_es_titular: { bg: '#FAE0E0', color: '#8B2020' },
+  numero_equivocado: { bg: '#F3E8FF', color: '#6B21A8' },
+  sin_contacto: { bg: '#E5E7EB', color: '#374151' },
 }

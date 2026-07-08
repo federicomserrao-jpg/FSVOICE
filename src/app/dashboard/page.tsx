@@ -18,22 +18,17 @@ export default function DashboardPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
     const { data: p } = await supabase.from('perfiles').select('*').eq('id', user.id).single()
     if (!p) return
     setPerfil(p as Perfil)
 
-    // Cargar todos los clientes (sin filtro por operador) con paginación
-const { data: c } = await supabase
-  .from('clientes')
-  .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion)')
-  .order('apellido', { ascending: true })
-  .range(0, 1999)
-
-    const lista = c ?? []
+    const [{ data: c1 }, { data: c2 }] = await Promise.all([
+      supabase.from('clientes').select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion, fecha_rellamar, motivo_rellamar)').order('apellido', { ascending: true }).range(0, 999),
+      supabase.from('clientes').select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion, fecha_rellamar, motivo_rellamar)').order('apellido', { ascending: true }).range(1000, 1999),
+    ])
+    const lista = [...(c1 ?? []), ...(c2 ?? [])]
     setClientes(lista)
 
-    // Cargar gestiones para correcciones y export
     const { data: g } = await supabase
       .from('gestiones')
       .select('*, cliente:clientes(*), operador:perfiles(nombre)')
