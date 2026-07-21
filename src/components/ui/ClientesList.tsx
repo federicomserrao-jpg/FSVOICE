@@ -92,7 +92,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
       const g = getUltimaGestion(c)
       const matchFiltro = filtro === 'todos' || estado === filtro
       const q = search.toLowerCase()
-      const matchSearch = !q || `${c.nombre} ${c.apellido}`.toLowerCase().includes(q) || (c.dni ?? '').includes(q)
+      const matchSearch = !q || `${c.nombre} ${c.apellido}`.toLowerCase().includes(q) || (c.dni ?? '').includes(q) || (c.telefono ?? '').includes(q) || (c.telefono_alternativo ?? '').includes(q)
       // Filtro por fecha de rellamar
       let matchFecha = true
       if (filtroFechaRellamar && estado === 'rellamar' && g?.fecha_rellamar) {

@@ -8,6 +8,7 @@ export type EstadoGestion =
   | 'no_es_titular'
   | 'numero_equivocado'
   | 'sin_contacto'
+  | 'dato_erroneo'
 
 export interface Perfil {
   id: string; nombre: string; email: string; rol: Rol; activo: boolean; created_at: string
@@ -22,6 +23,7 @@ export const ESTADO_LABELS: Record<EstadoGestion, string> = {
   no_es_titular: 'No es titular',
   numero_equivocado: 'Número equivocado',
   sin_contacto: 'Sin contacto',
+  dato_erroneo: 'Dato erróneo',
 }
 
 export const ESTADO_COLORS: Record<EstadoGestion, { bg: string; color: string }> = {
@@ -33,4 +35,5 @@ export const ESTADO_COLORS: Record<EstadoGestion, { bg: string; color: string }>
   no_es_titular: { bg: '#FAE0E0', color: '#8B2020' },
   numero_equivocado: { bg: '#F3E8FF', color: '#6B21A8' },
   sin_contacto: { bg: '#E5E7EB', color: '#374151' },
+  dato_erroneo: { bg: '#FEF3C7', color: '#92400E' },
 }
