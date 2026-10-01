@@ -27,7 +27,7 @@ export const ESTADO_LABELS: Record<EstadoGestion, string> = {
 }
 
 export const ESTADO_COLORS: Record<EstadoGestion, { bg: string; color: string }> = {
-  pendiente: { bg: '#F0EFE9', color: '#6B6A64' },
+  pendiente: { bg: '#F3F5F7', color: '#565D66' },
   encuestado: { bg: '#D8F3DC', color: '#2D6A4F' },
   fin_gestion: { bg: '#DDE9F8', color: '#1B4F8A' },
   no_acepta_encuesta: { bg: '#FAE0E0', color: '#8B2020' },

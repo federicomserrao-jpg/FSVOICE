@@ -24,20 +24,20 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
       { label: 'Rellamar hoy', href: '/dashboard?filtro=rellamar', icon: PhoneIcon },
     ]},
     { section: 'Supervisión', items: [
-      { label: 'Dashboard', href: '/metricas', icon: GridIcon },
+      { label: 'Métricas', href: '/metricas', icon: GridIcon },
       ...(perfil?.rol === 'admin' ? [{ label: 'Gestión admin', href: '/admin', icon: SettingsIcon }] : []),
     ]},
   ]
 
   return (
-    <nav style={{ width: '240px', flexShrink: 0, background: '#1A1917', color: '#F5F4F0', display: 'flex', flexDirection: 'column' }}>
+    <nav style={{ width: '248px', flexShrink: 0, background: '#000', color: '#fff', display: 'flex', flexDirection: 'column' }}>
 
       {/* LOGO */}
-      <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Image src="/logo-antelo-icon.png" alt="Grupo Antelo" width={36} height={36} style={{ borderRadius: '8px', flexShrink: 0 }} />
+      <div style={{ padding: '22px 20px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Image src="/logo-antelo-icon.png" alt="Grupo Antelo" width={40} height={40} style={{ borderRadius: '14px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.18)' }} />
         <div>
-          <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px', display: 'block', lineHeight: 1.2 }}>GRUPO ANTELO</span>
-          <small style={{ fontSize: '10px', opacity: 0.4, fontFamily: 'DM Mono, monospace', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Gestión CSAT</small>
+          <span style={{ fontSize: '16px', fontWeight: 700, fontStretch: '112%', letterSpacing: '-0.2px', display: 'block', lineHeight: 1.2 }}>Grupo Antelo</span>
+          <small style={{ fontSize: '12.5px', opacity: 0.55 }}>Encuestas de satisfacción</small>
         </div>
       </div>
 
@@ -45,7 +45,7 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
       <div style={{ flex: 1, padding: '10px 0' }}>
         {navItems.map(group => (
           <div key={group.section}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.35, padding: '12px 20px 5px', fontFamily: 'DM Mono, monospace' }}>
+            <div style={{ fontSize: '12px', opacity: 0.45, padding: '16px 24px 6px' }}>
               {group.section}
             </div>
             {group.items.map(item => {
@@ -54,7 +54,7 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
               return (
                 <button key={item.href} onClick={() => router.push(item.href)}
                   className={`nav-btn ${active ? 'active' : ''}`}>
-                  <Icon size={15} />
+                  <Icon size={16} />
                   {item.label}
                 </button>
               )
@@ -64,8 +64,8 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
       </div>
 
       {/* USER */}
-      <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>
+      <div style={{ padding: '14px 20px', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>
           {initials}
         </div>
         <div style={{ flex: 1, overflow: 'hidden' }}>
@@ -82,8 +82,8 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
 
       {/* NEXHR BRAND */}
       <div style={{ padding: '8px 20px 10px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ fontSize: '10px', opacity: 0.25, fontFamily: 'DM Mono, monospace', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-          NEXHR · Desarrollos
+        <span style={{ fontSize: '11.5px', opacity: 0.4 }}>
+          Desarrollado por NexHR
         </span>
       </div>
     </nav>

@@ -54,40 +54,40 @@ export default function AdminPage() {
 
   return (
     <>
-      <div style={{ height: '56px', borderBottom: '1px solid #E2E0D8', display: 'flex', alignItems: 'center', padding: '0 24px', background: '#fff', flexShrink: 0 }}>
-        <h1 style={{ fontSize: '15px', fontWeight: 600 }}>Gestión admin</h1>
-        <button onClick={() => router.push('/dashboard')} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #E2E0D8', background: '#fff', color: '#1A1917', fontFamily: 'DM Sans' }}>
+      <div style={{ height: '68px', display: 'flex', alignItems: 'center', padding: '0 28px', background: '#ECEEF1', flexShrink: 0 }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 700 }}>Gestión admin</h1>
+        <button onClick={() => router.push('/dashboard')} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #DDE1E6', background: '#fff', color: '#14171A', fontFamily: 'inherit' }}>
           ← Volver
         </button>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 28px 28px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
           {/* Crear usuario */}
-          <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '20px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '16px' }}>Crear nuevo usuario</div>
+          <div style={{ background: '#fff', border: '1px solid #DDE1E6', borderRadius: '14px', padding: '20px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#727A84', marginBottom: '16px' }}>Crear nuevo usuario</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6B6A64', marginBottom: '4px' }}>Nombre completo</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#565D66', marginBottom: '4px' }}>Nombre completo</label>
                 <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan López"
-                  style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#1A1917', outline: 'none', fontFamily: 'DM Sans', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#14171A', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6B6A64', marginBottom: '4px' }}>Email</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#565D66', marginBottom: '4px' }}>Email</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="juan@empresa.com"
-                  style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#1A1917', outline: 'none', fontFamily: 'DM Sans', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#14171A', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6B6A64', marginBottom: '4px' }}>Contraseña temporal</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#565D66', marginBottom: '4px' }}>Contraseña temporal</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 6 caracteres"
-                  style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#1A1917', outline: 'none', fontFamily: 'DM Sans', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '8px 11px', fontSize: '13.5px', color: '#14171A', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#6B6A64', marginBottom: '4px' }}>Rol</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, color: '#565D66', marginBottom: '4px' }}>Rol</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {(['operador','admin'] as const).map(r => (
                     <button key={r} onClick={() => setRol(r)}
-                      style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, border: '1px solid', cursor: 'pointer', fontFamily: 'DM Sans', borderColor: rol === r ? '#1A1917' : '#E2E0D8', background: rol === r ? '#1A1917' : '#F0EFE9', color: rol === r ? '#fff' : '#6B6A64' }}>
+                      style={{ flex: 1, padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, border: '1px solid', cursor: 'pointer', fontFamily: 'inherit', borderColor: rol === r ? '#14171A' : '#DDE1E6', background: rol === r ? '#14171A' : '#F3F5F7', color: rol === r ? '#fff' : '#565D66' }}>
                       {r.charAt(0).toUpperCase()+r.slice(1)}
                     </button>
                   ))}
@@ -99,25 +99,25 @@ export default function AdminPage() {
                 </div>
               )}
               <button onClick={crearUsuario} disabled={creando}
-                style={{ width: '100%', height: '40px', background: '#1A1917', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: creando ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans', opacity: creando ? 0.7 : 1 }}>
+                style={{ width: '100%', height: '40px', background: '#14171A', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: creando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: creando ? 0.7 : 1 }}>
                 {creando ? 'Creando...' : '+ Crear usuario'}
               </button>
             </div>
           </div>
 
           {/* Lista usuarios */}
-          <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '20px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '16px' }}>Usuarios activos ({perfiles.length})</div>
+          <div style={{ background: '#fff', border: '1px solid #DDE1E6', borderRadius: '14px', padding: '20px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#727A84', marginBottom: '16px' }}>Usuarios activos ({perfiles.length})</div>
             {perfiles.map(p => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #F0EFE9' }}>
-                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: p.rol === 'admin' ? '#1A1917' : '#DDE9F8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: p.rol === 'admin' ? '#fff' : '#1B4F8A', flexShrink: 0 }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #F3F5F7' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: p.rol === 'admin' ? '#14171A' : '#DDE9F8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600, color: p.rol === 'admin' ? '#fff' : '#1B4F8A', flexShrink: 0 }}>
                   {p.nombre.split(' ').map((n: string) => n[0]).join('').slice(0,2).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <div style={{ fontSize: '13.5px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nombre}</div>
-                  <div style={{ fontSize: '12px', color: '#9E9C95', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.email}</div>
+                  <div style={{ fontSize: '12px', color: '#727A84', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.email}</div>
                 </div>
-                <span style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 500, flexShrink: 0, background: p.rol === 'admin' ? '#1A1917' : '#DDE9F8', color: p.rol === 'admin' ? '#fff' : '#1B4F8A' }}>
+                <span style={{ padding: '3px 9px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 500, flexShrink: 0, background: p.rol === 'admin' ? '#14171A' : '#DDE9F8', color: p.rol === 'admin' ? '#fff' : '#1B4F8A' }}>
                   {p.rol}
                 </span>
               </div>

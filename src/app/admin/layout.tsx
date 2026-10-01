@@ -19,6 +19,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     checkAuth()
   }, [router])
-  if (!ready) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F5F4F0', fontSize: '14px', color: '#9E9C95' }}>Cargando...</div>
+  if (!ready) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#ECEEF1', fontSize: '14px', color: '#727A84' }}>Cargando...</div>
   return <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}><Sidebar perfil={perfil} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{children}</div></div>
 }

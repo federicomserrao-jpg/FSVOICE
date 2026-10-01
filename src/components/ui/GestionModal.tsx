@@ -15,7 +15,7 @@ const ESTADOS: { value: EstadoGestion; label: string; color?: string }[] = [
   { value: 'sin_contacto', label: 'Sin contacto', color: '#374151' },
   { value: 'numero_equivocado', label: 'Número equivocado', color: '#6B21A8' },
   { value: 'dato_erroneo', label: 'Dato erróneo', color: '#92400E' },
-  { value: 'pendiente', label: 'Pendiente', color: '#6B6A64' },
+  { value: 'pendiente', label: 'Pendiente', color: '#565D66' },
   { value: 'no_es_titular', label: 'No es titular', color: '#8B2020' },
 ]
 
@@ -171,10 +171,10 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
         <div className="modal-panel" style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}>
 
           {/* HEADER */}
-          <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #E2E0D8', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #DDE1E6', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>{cliente.apellido}{cliente.nombre ? `, ${cliente.nombre}` : ''}</h2>
-              <p style={{ fontSize: '12.5px', color: '#6B6A64', marginTop: '4px' }}>{cliente.marca} {cliente.modelo} · {cliente.concesionaria}{cliente.fecha_compra && ` · Compra: ${fmtFecha(cliente.fecha_compra)}`}</p>
+              <p style={{ fontSize: '12.5px', color: '#565D66', marginTop: '4px' }}>{cliente.marca} {cliente.modelo} · {cliente.concesionaria}{cliente.fecha_compra && ` · Compra: ${fmtFecha(cliente.fecha_compra)}`}</p>
               <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                 {cliente.telefono && (
                   <a href={`tel:${cliente.telefono}`} className="btn" style={{ height: '28px', fontSize: '12px', padding: '0 10px', textDecoration: 'none', color: '#1B4F8A', background: '#DDE9F8', borderColor: '#BAD4F5' }}>
@@ -199,23 +199,23 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
             <div style={{ display: 'flex', gap: '6px' }}>
               {historial.length > 0 && (
                 <button onClick={() => setShowHistorial(!showHistorial)} className="btn"
-                  style={{ height: '30px', fontSize: '12px', padding: '0 10px', background: showHistorial ? '#1A1917' : '#fff', color: showHistorial ? '#fff' : '#6B6A64', borderColor: showHistorial ? '#1A1917' : '#E2E0D8' }}>
+                  style={{ height: '30px', fontSize: '12px', padding: '0 10px', background: showHistorial ? '#14171A' : '#fff', color: showHistorial ? '#fff' : '#565D66', borderColor: showHistorial ? '#14171A' : '#DDE1E6' }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {historial.length}
                 </button>
               )}
-              <button onClick={onClose} className="btn" style={{ height: '30px', width: '30px', padding: 0, justifyContent: 'center', fontSize: '16px', color: '#9E9C95' }}>×</button>
+              <button onClick={onClose} className="btn" style={{ height: '30px', width: '30px', padding: 0, justifyContent: 'center', fontSize: '16px', color: '#727A84' }}>×</button>
             </div>
           </div>
 
           {/* HISTORIAL */}
           {showHistorial && (
-            <div className="fade-in" style={{ background: '#F0EFE9', borderBottom: '1px solid #E2E0D8', padding: '14px 24px', maxHeight: '160px', overflowY: 'auto' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '8px' }}>Historial de cambios</div>
+            <div className="fade-in" style={{ background: '#F3F5F7', borderBottom: '1px solid #DDE1E6', padding: '14px 24px', maxHeight: '160px', overflowY: 'auto' }}>
+              <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#727A84', marginBottom: '8px' }}>Historial de cambios</div>
               {historial.map(h => (
                 <div key={h.id} style={{ display: 'flex', gap: '10px', marginBottom: '5px', fontSize: '12px' }}>
-                  <span style={{ color: '#9E9C95', fontFamily: 'DM Mono', flexShrink: 0 }}>{fmtFechaHora(h.created_at)}</span>
-                  <span style={{ color: '#6B6A64', flexShrink: 0 }}>{h.operador?.nombre ?? '—'}</span>
+                  <span style={{ color: '#727A84', fontFamily: 'inherit', flexShrink: 0 }}>{fmtFechaHora(h.created_at)}</span>
+                  <span style={{ color: '#565D66', flexShrink: 0 }}>{h.operador?.nombre ?? '—'}</span>
                   <span><strong>{h.campo_modificado}</strong>: {h.valor_anterior ?? '—'} → {h.valor_nuevo ?? '—'}</span>
                 </div>
               ))}
@@ -223,17 +223,17 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           )}
 
           {/* STEPS */}
-          <div style={{ display: 'flex', padding: '14px 24px', background: '#F0EFE9', borderBottom: '1px solid #E2E0D8', gap: 0 }}>
+          <div style={{ display: 'flex', padding: '14px 24px', background: '#F3F5F7', borderBottom: '1px solid #DDE1E6', gap: 0 }}>
             {[{n:1,label:'Validación'},{n:2,label:'Experiencia'},{n:3,label:'Post-compra'}].map((s, i) => (
               <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                 <div onClick={() => s.n < step && setStep(s.n)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: s.n < step ? 'pointer' : 'default', color: step === s.n ? '#1A1917' : step > s.n ? '#2D6A4F' : '#9E9C95' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', cursor: s.n < step ? 'pointer' : 'default', color: step === s.n ? '#14171A' : step > s.n ? '#2D6A4F' : '#727A84' }}>
                   <div className={`step-dot ${step === s.n ? 'active' : step > s.n ? 'done' : 'pending'}`}>
                     {step > s.n ? '✓' : s.n}
                   </div>
                   {s.label}
                 </div>
-                {i < 2 && <span style={{ flex: 1, textAlign: 'center', color: '#C8C6BC', fontSize: '14px' }}>›</span>}
+                {i < 2 && <span style={{ flex: 1, textAlign: 'center', color: '#BCC3CB', fontSize: '14px' }}>›</span>}
               </div>
             ))}
           </div>
@@ -248,7 +248,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           {/* STEP 1 */}
           {step === 1 && (
             <div className="fade-up">
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Verificar datos del cliente</STitle>
                 {[
                   { label: 'Nombre completo', value: `${cliente.nombre ?? ''} ${cliente.apellido ?? ''}`.trim(), field: 'nombre_verificado', corrField: 'nombre_corregido', type: 'text' },
@@ -256,7 +256,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   { label: 'Teléfono', value: cliente.telefono ?? '(sin dato)', field: 'telefono_verificado', corrField: 'telefono_corregido', type: 'tel' },
                 ].map(item => <VerifyRow key={item.field} {...item} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />)}
               </div>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Verificar datos del vehículo</STitle>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {[
@@ -265,7 +265,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   ].map(item => <VerifyRow key={item.field} {...item} type="text" verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />)}
                 </div>
               </div>
-              <div style={{ padding: '16px 24px', background: '#F0EFE9', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '16px 24px', background: '#F3F5F7', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Estado de la gestión</STitle>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {ESTADOS.map(op => (
@@ -278,8 +278,8 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                 {form.estado === 'rellamar' && (
                   <div className="fade-in" style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center', background: '#FFF3CD', border: '1px solid #E8C96A', borderRadius: '6px', padding: '10px 14px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7D4F00" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    <input type="datetime-local" value={form.fecha_rellamar} onChange={e => setField('fecha_rellamar', e.target.value)} style={{ border: '1px solid #D08700', borderRadius: '6px', padding: '5px 8px', fontSize: '13px', fontFamily: 'DM Sans', background: '#fff', outline: 'none', flex: 1 }} />
-                    <input type="text" value={form.motivo_rellamar} onChange={e => setField('motivo_rellamar', e.target.value)} placeholder="Motivo..." style={{ flex: 2, border: '1px solid #D08700', borderRadius: '6px', padding: '5px 8px', fontSize: '13px', fontFamily: 'DM Sans', background: '#fff', outline: 'none' }} />
+                    <input type="datetime-local" value={form.fecha_rellamar} onChange={e => setField('fecha_rellamar', e.target.value)} style={{ border: '1px solid #D08700', borderRadius: '6px', padding: '5px 8px', fontSize: '13px', fontFamily: 'inherit', background: '#fff', outline: 'none', flex: 1 }} />
+                    <input type="text" value={form.motivo_rellamar} onChange={e => setField('motivo_rellamar', e.target.value)} placeholder="Motivo..." style={{ flex: 2, border: '1px solid #D08700', borderRadius: '6px', padding: '5px 8px', fontSize: '13px', fontFamily: 'inherit', background: '#fff', outline: 'none' }} />
                   </div>
                 )}
                 {esCierreRapido && (
@@ -290,9 +290,9 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                 )}
               </div>
               {esCierreRapido && (
-                <div className="fade-in" style={{ padding: '16px 24px', borderBottom: '1px solid #E2E0D8' }}>
+                <div className="fade-in" style={{ padding: '16px 24px', borderBottom: '1px solid #DDE1E6' }}>
                   <STitle>Observaciones</STitle>
-                  <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Detalle adicional..." style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: '13px', resize: 'vertical', minHeight: '70px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+                  <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Detalle adicional..." style={{ width: '100%', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '13px', resize: 'vertical', minHeight: '70px', outline: 'none', color: '#14171A', boxSizing: 'border-box' as const }} />
                 </div>
               )}
             </div>
@@ -301,21 +301,21 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           {/* STEP 2 */}
           {step === 2 && (
             <div className="fade-up">
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Atención del vendedor</STitle>
                 <RatingGroup question="¿Cómo calificaría la atención del vendedor? (1 al 5)" value={form.score_vendedor} onChange={(v: number) => setField('score_vendedor', v)} disabled={saltable} />
                 <RadioGroup question="¿El vendedor respondió de manera clara todas sus consultas?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.vendedor_respondio_consultas} onChange={(v: string) => setField('vendedor_respondio_consultas', v)} disabled={saltable} />
               </div>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Atención administrativa</STitle>
                 <RatingGroup question="¿Cómo calificaría la atención del área administrativa?" value={form.score_administrativo} onChange={(v: number) => setField('score_administrativo', v)} disabled={saltable} />
               </div>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Información sobre el vehículo</STitle>
                 <RadioGroup question="¿Recibió información clara sobre las funcionalidades del vehículo?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.info_vehiculo_clara} onChange={(v: string) => setField('info_vehiculo_clara', v)} disabled={saltable} />
                 <RadioGroup question="¿Le explicaron el uso de las principales funciones del auto?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.explicaron_funciones} onChange={(v: string) => setField('explicaron_funciones', v)} disabled={saltable} />
               </div>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Entrega y alistamiento</STitle>
                 <RadioGroup question="¿Realizó la colocación de accesorios en el vehículo?" options={['si','no']} labels={['Sí','No']} value={form.coloco_accesorios} onChange={(v: string) => setField('coloco_accesorios', v)} disabled={saltable} />
                 {form.coloco_accesorios === 'si' && (
@@ -323,7 +323,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                     <div style={{ fontSize: '13px', marginBottom: '6px' }}>¿Qué accesorios le colocaron?</div>
                     <input type="text" value={form.accesorios_detalle} onChange={e => setField('accesorios_detalle', e.target.value)} disabled={saltable}
                       placeholder="Ej: polarizado, barras de techo, cubre alfombras..."
-                      style={{ width: '100%', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '8px 11px', fontFamily: 'DM Sans', fontSize: '13px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+                      style={{ width: '100%', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '8px 11px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', color: '#14171A', boxSizing: 'border-box' as const }} />
                   </div>
                 )}
                 <RadioGroup question="¿Cómo calificaría su satisfacción con el equipamiento adicional que trae el vehículo (tuercas de seguridad, alfombras, matafuegos)?" options={['excelente','bueno','regular','deficiente']} labels={['Excelente','Bueno','Regular','Deficiente']} value={form.satisfaccion_equipamiento} onChange={(v: string) => setField('satisfaccion_equipamiento', v)} disabled={saltable} />
@@ -339,25 +339,25 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
           {/* STEP 3 */}
           {step === 3 && (
             <div className="fade-up">
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Contacto posterior</STitle>
                 <RadioGroup question="Luego de la compra, ¿tuvo que volver a comunicarse con la concesionaria?" options={['si','no']} labels={['Sí','No']} value={form.volvio_contactar} onChange={(v: string) => setField('volvio_contactar', v)} disabled={saltable} />
                 {form.volvio_contactar === 'si' && <RatingGroup question="¿Cómo calificaría la atención en ese contacto posterior?" value={form.score_contacto_posterior} onChange={(v: number) => setField('score_contacto_posterior', v)} disabled={saltable} />}
               </div>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Recomendación</STitle>
                 <RatingGroup question="¿Qué tan probable es que recomiende la concesionaria? (1 al 5)" value={form.score_recomendacion} onChange={(v: number) => setField('score_recomendacion', v)} disabled={saltable} labels={['Muy improbable','Improbable','Neutral','Probable','Muy probable']} />
               </div>
               <div style={{ padding: '18px 24px' }}>
                 <STitle>Observaciones libres</STitle>
-                <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Comentarios adicionales del cliente..." style={{ width: '100%', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'DM Sans', fontSize: '13px', resize: 'vertical', minHeight: '80px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+                <textarea value={form.observaciones} onChange={e => setField('observaciones', e.target.value)} placeholder="Comentarios adicionales del cliente..." style={{ width: '100%', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '10px 12px', fontFamily: 'inherit', fontSize: '13px', resize: 'vertical', minHeight: '80px', outline: 'none', color: '#14171A', boxSizing: 'border-box' as const }} />
               </div>
               {saltable && <div style={{ background: '#DDE9F8', border: '1px solid #85B7EB', margin: '0 24px 16px', borderRadius: '6px', padding: '10px 14px', fontSize: '12.5px', color: '#1B4F8A' }}>Las preguntas no son obligatorias para "{ESTADO_LABELS[form.estado]}".</div>}
             </div>
           )}
 
           {/* FOOTER */}
-          <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E0D8', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: '#F0EFE9', borderRadius: '0 0 14px 14px' }}>
+          <div style={{ padding: '14px 24px', borderTop: '1px solid #DDE1E6', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: '#F3F5F7', borderRadius: '0 0 14px 14px' }}>
             <button onClick={onClose} className="btn">Cancelar</button>
             {step > 1 && <button onClick={prevStep} className="btn">← Anterior</button>}
             {step === 1 && esCierreRapido && (
@@ -391,22 +391,22 @@ function Spinner() {
 }
 
 function STitle({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: '10.5px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '12px' }}>{children}</div>
+  return <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#727A84', marginBottom: '12px' }}>{children}</div>
 }
 
 function VerifyRow({ label, value, verified, corregido, corrType, type, onVerify, onCorrect }: any) {
   return (
     <div style={{ marginBottom: '10px' }}>
-      <div style={{ fontSize: '12px', color: '#6B6A64', fontWeight: 500, marginBottom: '4px' }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F0EFE9', border: '1px solid #E2E0D8', borderRadius: '6px', padding: '7px 11px', transition: 'border-color 0.14s' }}>
-        <span style={{ flex: 1, fontSize: '13px', fontFamily: 'DM Mono', color: '#1A1917' }}>{value}</span>
+      <div style={{ fontSize: '12px', color: '#565D66', fontWeight: 500, marginBottom: '4px' }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '6px', padding: '7px 11px', transition: 'border-color 0.14s' }}>
+        <span style={{ flex: 1, fontSize: '13px', fontFamily: 'inherit', color: '#14171A' }}>{value}</span>
         <button onClick={() => onVerify(true)} className={`verify-btn ${verified === true ? 'si' : ''}`}>Sí ✓</button>
         <button onClick={() => onVerify(false)} className={`verify-btn ${verified === false ? 'no' : ''}`}>No ✗</button>
       </div>
       {verified === false && (
         <input type={type ?? 'text'} value={corregido} onChange={e => onCorrect(e.target.value)} placeholder={`${label} correcto...`}
           className="fade-in"
-          style={{ width: '100%', marginTop: '6px', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '7px 11px', fontFamily: 'DM Mono', fontSize: '13px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+          style={{ width: '100%', marginTop: '6px', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '7px 11px', fontFamily: 'inherit', fontSize: '13px', outline: 'none', color: '#14171A', boxSizing: 'border-box' as const }} />
       )}
     </div>
   )
@@ -420,7 +420,7 @@ function RatingGroup({ question, value, onChange, disabled, labels }: any) {
       <div style={{ display: 'flex', gap: '6px' }}>
         {[1,2,3,4,5].map(n => (
           <button key={n} onClick={() => !disabled && onChange(n)} className={`rating-btn ${value === n ? 'sel' : ''}`} disabled={disabled}>
-            <span style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'DM Mono' }}>{n}</span>
+            <span style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'inherit' }}>{n}</span>
             <span style={{ fontSize: '9px', textAlign: 'center', lineHeight: 1.2, opacity: 0.7 }}>{l[n-1]}</span>
           </button>
         ))}

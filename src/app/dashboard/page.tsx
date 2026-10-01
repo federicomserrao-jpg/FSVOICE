@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
   useEffect(() => { load() }, [load])
 
-  if (!ready) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '14px', color: '#9E9C95', fontFamily: 'DM Sans, sans-serif' }}>Cargando clientes...</div>
+  if (!ready) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, fontSize: '14px', color: '#727A84', fontFamily: 'inherit' }}>Cargando clientes...</div>
 
   return <ClientesList clientes={clientes} gestiones={gestiones} perfil={perfil!} stats={stats} filtroInicial={filtroInicial} onRefresh={load} />
 }
