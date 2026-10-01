@@ -53,3 +53,19 @@ export function fmtFechaHora(fecha: string | null | undefined): string {
     return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   } catch { return '—' }
 }
+
+// Trae todas las filas de una consulta paginando de a 1000 (límite de la API de Supabase)
+export async function fetchAll<T = any>(
+  query: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+  pageSize = 1000
+): Promise<T[]> {
+  const out: T[] = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await query(from, from + pageSize - 1)
+    if (error) throw error
+    const rows = data ?? []
+    out.push(...rows)
+    if (rows.length < pageSize) break
+  }
+  return out
+}

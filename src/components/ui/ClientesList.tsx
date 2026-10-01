@@ -34,8 +34,6 @@ const CAMPOS_VER = [
   { field: 'nombre_verificado', corr: 'nombre_corregido', label: 'Nombre' },
   { field: 'email_verificado', corr: 'email_corregido', label: 'Email' },
   { field: 'telefono_verificado', corr: 'telefono_corregido', label: 'Teléfono' },
-  { field: 'direccion_verificada', corr: 'direccion_corregida', label: 'Dirección' },
-  { field: 'patente_verificada', corr: 'patente_corregida', label: 'Patente' },
   { field: 'marca_verificada', corr: 'marca_corregida', label: 'Marca' },
   { field: 'modelo_verificado', corr: 'modelo_corregido', label: 'Modelo' },
 ]
@@ -164,15 +162,22 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
       'Patente': g.cliente?.patente ?? '', 'Estado': ESTADO_LABELS[g.estado as EstadoGestion] ?? g.estado,
       'Operador': g.operador?.nombre ?? '', 'Fecha gestión': fmtFechaHora(g.updated_at),
       'Fecha rellamar': fmtFechaHora(g.fecha_rellamar), 'Motivo rellamar': g.motivo_rellamar ?? '',
-      'Score vendedor': g.score_vendedor ?? '', 'Score administrativo': g.score_administrativo ?? '',
+      'Nombre corregido': g.nombre_corregido ?? '', 'Marca corregida': g.marca_corregida ?? '', 'Modelo corregido': g.modelo_corregido ?? '',
+      'Score vendedor': g.score_vendedor ?? '', 'Vendedor respondió consultas': g.vendedor_respondio_consultas ?? '',
+      'Score administrativo': g.score_administrativo ?? '',
+      'Info funcionalidades': g.info_vehiculo_clara ?? '', 'Explicaron funciones': g.explicaron_funciones ?? '',
+      'Colocó accesorios': g.coloco_accesorios ?? '', 'Accesorios colocados': g.accesorios_detalle ?? '',
+      'Satisfacción equipamiento': g.satisfaccion_equipamiento ?? '',
+      'Info talleres/postventa': g.info_postventa ?? '',
+      'Volvió a contactar': g.volvio_contactar ?? '', 'Score contacto posterior': g.score_contacto_posterior ?? '',
       'Score recomendación': g.score_recomendacion ?? '', 'Observaciones': g.observaciones ?? '',
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Gestiones')
-    ws['!cols'] = Array(21).fill({ wch: 20 })
+    ws['!cols'] = Array(32).fill({ wch: 20 })
     const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g, '-')
-    XLSX.writeFile(wb, `FSVOICE_CarOne_${fecha}.xlsx`)
+    XLSX.writeFile(wb, `CarOne_Gestiones_${fecha}.xlsx`)
   }
 
   return (
@@ -281,7 +286,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
                 <strong style={{ color: '#8B2020' }}>{correcciones.totalCorregidos}</strong> corregidos de <strong>{correcciones.totalVerificados}</strong> verificados
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
               {CAMPOS_VER.map(c => {
                 const data = correcciones.resumen[c.label]
                 const pctC = data.total > 0 ? Math.round(data.corregidos/data.total*100) : 0

@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import ClientesList from '@/components/ui/ClientesList'
+import { fetchAll } from '@/lib/utils'
 import { Perfil } from '@/types'
 
 export default function DashboardPage() {
@@ -22,18 +23,19 @@ export default function DashboardPage() {
     if (!p) return
     setPerfil(p as Perfil)
 
-    const [{ data: c1 }, { data: c2 }] = await Promise.all([
-      supabase.from('clientes').select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion, fecha_rellamar, motivo_rellamar)').order('apellido', { ascending: true }).range(0, 999),
-      supabase.from('clientes').select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion, fecha_rellamar, motivo_rellamar)').order('apellido', { ascending: true }).range(1000, 1999),
-    ])
-    const lista = [...(c1 ?? []), ...(c2 ?? [])]
+    const lista = await fetchAll((from, to) =>
+      supabase.from('clientes')
+        .select('*, gestiones(id, estado, created_at, updated_at, score_recomendacion, fecha_rellamar, motivo_rellamar)')
+        .order('apellido', { ascending: true }).order('id', { ascending: true })
+        .range(from, to))
     setClientes(lista)
 
-    const { data: g } = await supabase
-      .from('gestiones')
-      .select('*, cliente:clientes(*), operador:perfiles(nombre)')
-      .range(0, 1999)
-    setGestiones(g ?? [])
+    const g = await fetchAll((from, to) =>
+      supabase.from('gestiones')
+        .select('*, cliente:clientes(*), operador:perfiles(nombre)')
+        .order('id', { ascending: true })
+        .range(from, to))
+    setGestiones(g)
 
     const total = lista.length
     const contactados = lista.filter((x: any) => x.gestiones?.some((g: any) => g.estado === 'encuestado')).length

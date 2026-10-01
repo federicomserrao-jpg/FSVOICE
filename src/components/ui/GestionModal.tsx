@@ -32,6 +32,7 @@ const INIT = {
   score_vendedor: null as number|null, vendedor_respondio_consultas: '',
   score_administrativo: null as number|null, info_vehiculo_clara: '',
   explicaron_funciones: '', info_postventa: '', volvio_contactar: '',
+  coloco_accesorios: '', accesorios_detalle: '', satisfaccion_equipamiento: '',
   score_contacto_posterior: null as number|null, score_recomendacion: null as number|null,
 }
 
@@ -67,6 +68,8 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
         explicaron_funciones: g.explicaron_funciones ?? '', info_postventa: g.info_postventa ?? '',
         volvio_contactar: g.volvio_contactar ?? '', score_contacto_posterior: g.score_contacto_posterior,
         score_recomendacion: g.score_recomendacion,
+        coloco_accesorios: g.coloco_accesorios ?? '', accesorios_detalle: g.accesorios_detalle ?? '',
+        satisfaccion_equipamiento: g.satisfaccion_equipamiento ?? '',
       }))
       const { data: hist } = await supabase.from('historial_cambios').select('*, operador:perfiles(nombre)').eq('gestion_id', g.id).order('created_at', { ascending: false })
       setHistorial(hist ?? [])
@@ -78,7 +81,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
   function validateStep(s: number) {
     const errs: string[] = []
     if (s === 1) {
-      [['nombre_verificado','Nombre'],['email_verificado','Email'],['telefono_verificado','Teléfono'],['direccion_verificada','Dirección'],['patente_verificada','Patente'],['marca_verificada','Marca'],['modelo_verificado','Modelo']].forEach(([f,l]) => { if ((form as any)[f] === null) errs.push(`Verificá: ${l}`) })
+      [['nombre_verificado','Nombre'],['email_verificado','Email'],['telefono_verificado','Teléfono'],['marca_verificada','Marca'],['modelo_verificado','Modelo']].forEach(([f,l]) => { if ((form as any)[f] === null) errs.push(`Verificá: ${l}`) })
       if (form.email_verificado === false && !form.email_corregido.trim()) errs.push('Ingresá el email correcto')
       if (form.telefono_verificado === false && !form.telefono_corregido.trim()) errs.push('Ingresá el teléfono correcto')
       if (form.estado === 'rellamar' && !form.fecha_rellamar) errs.push('Ingresá la fecha y hora de rellamado')
@@ -89,6 +92,9 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       if (!form.score_administrativo) errs.push('Score administrativo requerido')
       if (!form.info_vehiculo_clara) errs.push('Info vehículo requerida')
       if (!form.explicaron_funciones) errs.push('Funciones auto requeridas')
+      if (!form.coloco_accesorios) errs.push('Indicá si colocó accesorios')
+      if (form.coloco_accesorios === 'si' && !form.accesorios_detalle.trim()) errs.push('Indicá qué accesorios colocó')
+      if (!form.satisfaccion_equipamiento) errs.push('Satisfacción con el equipamiento requerida')
       if (!form.info_postventa) errs.push('Info postventa requerida')
     }
     if (s === 3 && ['encuestado','fin_gestion'].includes(form.estado)) {
@@ -117,28 +123,33 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       nombre_verificado: form.nombre_verificado, nombre_corregido: form.nombre_verificado === false ? form.nombre_corregido : null,
       email_verificado: form.email_verificado, email_corregido: form.email_verificado === false ? form.email_corregido : null,
       telefono_verificado: form.telefono_verificado, telefono_corregido: form.telefono_verificado === false ? form.telefono_corregido : null,
-      direccion_verificada: form.direccion_verificada, direccion_corregida: form.direccion_verificada === false ? form.direccion_corregida : null,
-      patente_verificada: form.patente_verificada, patente_corregida: form.patente_verificada === false ? form.patente_corregida : null,
       marca_verificada: form.marca_verificada, marca_corregida: form.marca_verificada === false ? form.marca_corregida : null,
       modelo_verificado: form.modelo_verificado, modelo_corregido: form.modelo_verificado === false ? form.modelo_corregido : null,
       score_vendedor: form.score_vendedor, vendedor_respondio_consultas: form.vendedor_respondio_consultas || null,
       score_administrativo: form.score_administrativo, info_vehiculo_clara: form.info_vehiculo_clara || null,
       explicaron_funciones: form.explicaron_funciones || null, info_postventa: form.info_postventa || null,
+      coloco_accesorios: form.coloco_accesorios || null,
+      accesorios_detalle: form.coloco_accesorios === 'si' ? (form.accesorios_detalle.trim() || null) : null,
+      satisfaccion_equipamiento: form.satisfaccion_equipamiento || null,
       volvio_contactar: form.volvio_contactar || null, score_contacto_posterior: form.score_contacto_posterior,
       score_recomendacion: form.score_recomendacion,
       completado: ['encuestado','fin_gestion','no_acepta_encuesta','no_es_titular','numero_equivocado','dato_erroneo'].includes(form.estado),
     }
     try {
       if (gestionExistente) {
-        await supabase.from('gestiones').update(payload).eq('id', gestionExistente.id)
-        for (const campo of Object.keys(payload)) {
-          const ant = gestionExistente[campo]; const nvo = payload[campo]
-          if (String(ant ?? '') !== String(nvo ?? '') && !['cliente_id','operador_id'].includes(campo)) {
-            await supabase.from('historial_cambios').insert({ gestion_id: gestionExistente.id, operador_id: perfil.id, campo_modificado: campo, valor_anterior: ant != null ? String(ant) : null, valor_nuevo: nvo != null ? String(nvo) : null })
-          }
-        }
+        const { error: errUpd } = await supabase.from('gestiones').update(payload).eq('id', gestionExistente.id)
+        if (errUpd) throw errUpd
+        const cambios = Object.keys(payload)
+          .filter(campo => !['cliente_id','operador_id'].includes(campo) && String(gestionExistente[campo] ?? '') !== String(payload[campo] ?? ''))
+          .map(campo => ({
+            gestion_id: gestionExistente.id, operador_id: perfil.id, campo_modificado: campo,
+            valor_anterior: gestionExistente[campo] != null ? String(gestionExistente[campo]) : null,
+            valor_nuevo: payload[campo] != null ? String(payload[campo]) : null,
+          }))
+        if (cambios.length) await supabase.from('historial_cambios').insert(cambios)
       } else {
-        const { data: nueva } = await supabase.from('gestiones').insert(payload).select().single()
+        const { data: nueva, error: errIns } = await supabase.from('gestiones').insert(payload).select().single()
+        if (errIns) throw errIns
         if (nueva) await supabase.from('historial_cambios').insert({ gestion_id: nueva.id, operador_id: perfil.id, campo_modificado: 'estado', valor_anterior: null, valor_nuevo: payload.estado })
       }
       setSaving(false)
@@ -243,7 +254,6 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   { label: 'Nombre completo', value: `${cliente.nombre ?? ''} ${cliente.apellido ?? ''}`.trim(), field: 'nombre_verificado', corrField: 'nombre_corregido', type: 'text' },
                   { label: 'Email', value: cliente.email ?? '(sin dato)', field: 'email_verificado', corrField: 'email_corregido', type: 'email' },
                   { label: 'Teléfono', value: cliente.telefono ?? '(sin dato)', field: 'telefono_verificado', corrField: 'telefono_corregido', type: 'tel' },
-                  { label: 'Dirección', value: cliente.direccion ?? '(sin dato)', field: 'direccion_verificada', corrField: 'direccion_corregida', type: 'text' },
                 ].map(item => <VerifyRow key={item.field} {...item} verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />)}
               </div>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
@@ -252,7 +262,6 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                   {[
                     { label: 'Marca', value: cliente.marca ?? '—', field: 'marca_verificada', corrField: 'marca_corregida' },
                     { label: 'Modelo', value: cliente.modelo ?? '—', field: 'modelo_verificado', corrField: 'modelo_corregido' },
-                    { label: 'Patente', value: cliente.patente ?? '—', field: 'patente_verificada', corrField: 'patente_corregida' },
                   ].map(item => <VerifyRow key={item.field} {...item} type="text" verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />)}
                 </div>
               </div>
@@ -305,6 +314,19 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
                 <STitle>Información sobre el vehículo</STitle>
                 <RadioGroup question="¿Recibió información clara sobre las funcionalidades del vehículo?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.info_vehiculo_clara} onChange={(v: string) => setField('info_vehiculo_clara', v)} disabled={saltable} />
                 <RadioGroup question="¿Le explicaron el uso de las principales funciones del auto?" options={['si','parcialmente','no']} labels={['Sí','Parcialmente','No']} value={form.explicaron_funciones} onChange={(v: string) => setField('explicaron_funciones', v)} disabled={saltable} />
+              </div>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid #E2E0D8' }}>
+                <STitle>Entrega y alistamiento</STitle>
+                <RadioGroup question="¿Realizó la colocación de accesorios en el vehículo?" options={['si','no']} labels={['Sí','No']} value={form.coloco_accesorios} onChange={(v: string) => setField('coloco_accesorios', v)} disabled={saltable} />
+                {form.coloco_accesorios === 'si' && (
+                  <div className="fade-in" style={{ marginBottom: '14px', opacity: saltable ? 0.45 : 1 }}>
+                    <div style={{ fontSize: '13px', marginBottom: '6px' }}>¿Qué accesorios le colocaron?</div>
+                    <input type="text" value={form.accesorios_detalle} onChange={e => setField('accesorios_detalle', e.target.value)} disabled={saltable}
+                      placeholder="Ej: polarizado, barras de techo, cubre alfombras..."
+                      style={{ width: '100%', background: '#FFFBF0', border: '1px solid #D08700', borderRadius: '6px', padding: '8px 11px', fontFamily: 'DM Sans', fontSize: '13px', outline: 'none', color: '#1A1917', boxSizing: 'border-box' as const }} />
+                  </div>
+                )}
+                <RadioGroup question="¿Cómo calificaría su satisfacción con el equipamiento adicional que trae el vehículo (tuercas de seguridad, alfombras, matafuegos)?" options={['excelente','bueno','regular','deficiente']} labels={['Excelente','Bueno','Regular','Deficiente']} value={form.satisfaccion_equipamiento} onChange={(v: string) => setField('satisfaccion_equipamiento', v)} disabled={saltable} />
               </div>
               <div style={{ padding: '18px 24px' }}>
                 <STitle>Postventa</STitle>

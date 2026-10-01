@@ -1,112 +1,212 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { ESTADO_LABELS, EstadoGestion } from '@/types'
-import { format } from 'date-fns'
+import { ESTADO_LABELS, ESTADO_COLORS, EstadoGestion } from '@/types'
+import { fetchAll } from '@/lib/utils'
+
+// Estados en los que el asesor habló con alguien del otro lado
+const ESTADOS_CONTACTADO = ['encuestado', 'fin_gestion', 'no_acepta_encuesta', 'rellamar', 'no_es_titular']
+
+const iso = (d: Date) => {
+  const off = d.getTimezoneOffset() * 60000
+  return new Date(d.getTime() - off).toISOString().split('T')[0]
+}
+const fmt = (d: string) => d.split('-').reverse().join('/')
+const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
+
+type Asesor = { id: string; nombre: string; gestiones: number; contactados: number; encuestas: number; scores: number[] }
 
 export default function MetricasPage() {
-  const searchParams = useSearchParams()
-  const hoy = new Date().toISOString().split('T')[0]
-  const [desde, setDesde] = useState(searchParams.get('desde') ?? new Date(Date.now()-7*86400000).toISOString().split('T')[0])
-  const [hasta, setHasta] = useState(searchParams.get('hasta') ?? hoy)
+  const hoy = iso(new Date())
+  const [desde, setDesde] = useState(hoy)
+  const [hasta, setHasta] = useState(hoy)
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   async function load(d: string, h: string) {
-    setLoading(true)
-    const supabase = createClient()
-    const { data: gestiones } = await supabase.from('gestiones').select('*, operador:perfiles(nombre), cliente:clientes(concesionaria)').gte('updated_at', `${d}T00:00:00`).lte('updated_at', `${h}T23:59:59`)
-    const { count: totalClientes } = await supabase.from('clientes').select('*', { count: 'exact', head: true })
-    const lista = gestiones ?? []
-    const porOperador: Record<string, any> = {}
-    lista.forEach((g: any) => {
-      const nom = g.operador?.nombre ?? 'Desconocido'
-      if (!porOperador[g.operador_id]) porOperador[g.operador_id] = { nombre: nom, total: 0, encuestados: 0, scores: [] }
-      porOperador[g.operador_id].total++
-      if (g.estado === 'encuestado') { porOperador[g.operador_id].encuestados++; if (g.score_recomendacion) porOperador[g.operador_id].scores.push(g.score_recomendacion) }
-    })
-    const porEstado: Record<string, number> = {}
-    lista.forEach((g: any) => { porEstado[g.estado] = (porEstado[g.estado] ?? 0) + 1 })
-    const porConc: Record<string, any> = {}
-    lista.forEach((g: any) => {
-      const c = g.cliente?.concesionaria ?? 'Sin asignar'
-      if (!porConc[c]) porConc[c] = { total: 0, scores: [] }
-      porConc[c].total++; if (g.score_recomendacion) porConc[c].scores.push(g.score_recomendacion)
-    })
-    const encuestados = lista.filter((g: any) => g.estado === 'encuestado').length
-    const allScores = lista.filter((g: any) => g.score_recomendacion).map((g: any) => g.score_recomendacion)
-    const avgScore = allScores.length ? allScores.reduce((a: number, b: number) => a+b,0)/allScores.length : null
-    setData({ totalClientes: totalClientes ?? 0, totalGestiones: lista.length, encuestados, avgScore, porOperador: Object.values(porOperador), porEstado, porConcesionaria: Object.entries(porConc).map(([nombre, d]: any) => ({ nombre, ...d })) })
+    setLoading(true); setError('')
+    try {
+      const supabase = createClient()
+      // Convierte el día local (Argentina) a rango UTC
+      const ini = new Date(`${d}T00:00:00`).toISOString()
+      const fin = new Date(`${h}T23:59:59.999`).toISOString()
+      const lista = await fetchAll((from, to) =>
+        supabase.from('gestiones')
+          .select('id, estado, operador_id, score_recomendacion, updated_at, operador:perfiles(nombre), cliente:clientes(concesionaria)')
+          .gte('updated_at', ini).lte('updated_at', fin)
+          .order('id', { ascending: true })
+          .range(from, to))
+      const { count: totalClientes } = await supabase.from('clientes').select('*', { count: 'exact', head: true })
+      const { count: encuestadosTotal } = await supabase.from('gestiones').select('*', { count: 'exact', head: true }).eq('estado', 'encuestado')
+      const { data: perfiles } = await supabase.from('perfiles').select('id, nombre, rol').eq('activo', true)
+
+      // Por asesor: arrancamos con todos los operadores activos para que aparezcan aunque estén en 0
+      const porAsesor: Record<string, Asesor> = {}
+      ;(perfiles ?? []).filter((p: any) => p.rol === 'operador').forEach((p: any) => {
+        porAsesor[p.id] = { id: p.id, nombre: p.nombre, gestiones: 0, contactados: 0, encuestas: 0, scores: [] }
+      })
+      lista.forEach((g: any) => {
+        if (!porAsesor[g.operador_id]) porAsesor[g.operador_id] = { id: g.operador_id, nombre: g.operador?.nombre ?? 'Desconocido', gestiones: 0, contactados: 0, encuestas: 0, scores: [] }
+        const a = porAsesor[g.operador_id]
+        a.gestiones++
+        if (ESTADOS_CONTACTADO.includes(g.estado)) a.contactados++
+        if (g.estado === 'encuestado') { a.encuestas++; if (g.score_recomendacion) a.scores.push(g.score_recomendacion) }
+      })
+
+      const porEstado: Record<string, number> = {}
+      lista.forEach((g: any) => { porEstado[g.estado] = (porEstado[g.estado] ?? 0) + 1 })
+
+      const porConc: Record<string, { total: number; encuestas: number; scores: number[] }> = {}
+      lista.forEach((g: any) => {
+        const c = g.cliente?.concesionaria ?? 'Sin asignar'
+        if (!porConc[c]) porConc[c] = { total: 0, encuestas: 0, scores: [] }
+        porConc[c].total++
+        if (g.estado === 'encuestado') porConc[c].encuestas++
+        if (g.score_recomendacion) porConc[c].scores.push(g.score_recomendacion)
+      })
+
+      setData({
+        totalClientes: totalClientes ?? 0,
+        encuestadosTotal: encuestadosTotal ?? 0,
+        gestiones: lista.length,
+        contactados: lista.filter((g: any) => ESTADOS_CONTACTADO.includes(g.estado)).length,
+        encuestas: lista.filter((g: any) => g.estado === 'encuestado').length,
+        avgScore: avg(lista.filter((g: any) => g.score_recomendacion).map((g: any) => g.score_recomendacion)),
+        porAsesor: Object.values(porAsesor).sort((a, b) => b.encuestas - a.encuestas || b.contactados - a.contactados),
+        porEstado,
+        porConcesionaria: Object.entries(porConc).map(([nombre, d]) => ({ nombre, ...d })).sort((a, b) => b.total - a.total),
+      })
+    } catch (e: any) {
+      console.error(e); setError('No se pudieron cargar las métricas. Recargá la página.')
+    }
     setLoading(false)
   }
 
   useEffect(() => { load(desde, hasta) }, [])
 
-  const colorEstado: Record<string, string> = { encuestado: '#2D6A4F', fin_gestion: '#1B4F8A', pendiente: '#9E9C95', rellamar: '#7D4F00', no_acepta_encuesta: '#8B2020', no_es_titular: '#8B2020' }
-  const pct = data?.totalClientes > 0 ? Math.round(data.encuestados/data.totalClientes*100) : 0
+  function rango(tipo: 'hoy' | 'semana' | 'mes' | 'todo') {
+    const h = new Date()
+    let d = new Date()
+    if (tipo === 'semana') d.setDate(h.getDate() - 6)
+    if (tipo === 'mes') d = new Date(h.getFullYear(), h.getMonth(), 1)
+    if (tipo === 'todo') d = new Date(2026, 0, 1)
+    const dd = iso(d), hh = iso(h)
+    setDesde(dd); setHasta(hh); load(dd, hh)
+  }
+
+  const avance = data?.totalClientes > 0 ? Math.round(data.encuestadosTotal / data.totalClientes * 100) : 0
+  const maxGestiones = data ? Math.max(1, ...data.porAsesor.map((a: Asesor) => a.gestiones)) : 1
+  const card = { background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '18px' }
+  const sectionTitle = { fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '12px' }
+  const th = { fontSize: '11px', color: '#9E9C95', textAlign: 'left' as const, padding: '4px 8px 8px 0', fontWeight: 500, textTransform: 'uppercase' as const }
+  const td = { padding: '10px 8px 10px 0', fontSize: '13px', fontFamily: 'DM Mono' }
 
   return (
     <>
-      <div style={{ height: '56px', borderBottom: '1px solid #E2E0D8', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '16px', background: '#fff', flexShrink: 0 }}>
+      <div style={{ height: '56px', borderBottom: '1px solid #E2E0D8', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '12px', background: '#fff', flexShrink: 0 }}>
         <h1 style={{ fontSize: '15px', fontWeight: 600 }}>Métricas</h1>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '12px', color: '#9E9C95' }}>Rango:</span>
-          <input type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ border: '1px solid #E2E0D8', borderRadius: '6px', padding: '5px 10px', fontSize: '13px', fontFamily: 'DM Sans', outline: 'none' }} />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {(['hoy', 'semana', 'mes', 'todo'] as const).map(t => (
+            <button key={t} onClick={() => rango(t)} className="filter-pill">
+              {t === 'hoy' ? 'Hoy' : t === 'semana' ? 'Últimos 7 días' : t === 'mes' ? 'Este mes' : 'Todo'}
+            </button>
+          ))}
+          <input type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ border: '1px solid #E2E0D8', borderRadius: '6px', padding: '5px 8px', fontSize: '12.5px', fontFamily: 'DM Sans' }} />
           <span style={{ fontSize: '12px', color: '#9E9C95' }}>→</span>
-          <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ border: '1px solid #E2E0D8', borderRadius: '6px', padding: '5px 10px', fontSize: '13px', fontFamily: 'DM Sans', outline: 'none' }} />
-          <button onClick={() => load(desde, hasta)} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none', background: '#1A1917', color: '#fff', fontFamily: 'DM Sans' }}>Aplicar</button>
-          <button onClick={() => { setDesde(hoy); setHasta(hoy); load(hoy, hoy) }} style={{ display: 'inline-flex', alignItems: 'center', padding: '0 14px', height: '34px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #E2E0D8', background: '#fff', color: '#1A1917', fontFamily: 'DM Sans' }}>Hoy</button>
+          <input type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ border: '1px solid #E2E0D8', borderRadius: '6px', padding: '5px 8px', fontSize: '12.5px', fontFamily: 'DM Sans' }} />
+          <button onClick={() => load(desde, hasta)} className="btn btn-primary">Aplicar</button>
         </div>
       </div>
+
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        {error && <div style={{ background: '#FAE0E0', border: '1px solid #F09595', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#8B2020', marginBottom: '16px' }}>{error}</div>}
         {loading ? <div style={{ textAlign: 'center', padding: '40px', color: '#9E9C95' }}>Cargando métricas...</div> : !data ? null : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '12.5px', color: '#6B6A64', marginBottom: '12px' }}>
+              Período: <strong>{desde === hasta ? fmt(desde) : `${fmt(desde)} al ${fmt(hasta)}`}</strong>
+            </div>
+
+            {/* KPIs del período */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px', marginBottom: '16px' }}>
               {[
-                { label: 'Total clientes', value: data.totalClientes, sub: 'Base Car One', color: '#1A1917' },
-                { label: 'Gestiones período', value: data.totalGestiones, sub: `${desde} → ${hasta}`, color: '#1B4F8A' },
-                { label: 'Encuestados', value: data.encuestados, sub: `${pct}% del total`, color: '#2D6A4F' },
-                { label: 'Score promedio', value: data.avgScore ? data.avgScore.toFixed(1) : '—', sub: 'Recomendación / 5', color: data.avgScore >= 4 ? '#2D6A4F' : '#7D4F00' },
+                { label: 'Gestiones', value: data.gestiones, sub: 'Llamadas registradas en el período', color: '#1A1917' },
+                { label: 'Contactados', value: data.contactados, sub: data.gestiones ? `${Math.round(data.contactados / data.gestiones * 100)}% de las gestiones` : '—', color: '#1B4F8A' },
+                { label: 'Encuestas realizadas', value: data.encuestas, sub: data.contactados ? `${Math.round(data.encuestas / data.contactados * 100)}% de los contactados` : '—', color: '#2D6A4F' },
+                { label: 'Score recomendación', value: data.avgScore ? `${data.avgScore.toFixed(1)}/5` : '—', sub: 'Promedio del período', color: '#7D4F00' },
               ].map(s => (
-                <div key={s.label} style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '16px 18px' }}>
+                <div key={s.label} className="kpi-card">
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: s.color }} />
                   <div style={{ fontSize: '11.5px', color: '#9E9C95', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{s.label}</div>
-                  <div style={{ fontSize: '26px', fontWeight: 600, letterSpacing: '-1px', fontFamily: 'DM Mono', color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '-1px', fontFamily: 'DM Mono', color: s.color }}>{s.value}</div>
                   <div style={{ fontSize: '11.5px', color: '#6B6A64', marginTop: '4px' }}>{s.sub}</div>
                 </div>
               ))}
             </div>
-            <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '18px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Avance de gestión</span>
-                <span style={{ fontSize: '13px', fontFamily: 'DM Mono', color: '#2D6A4F', fontWeight: 600 }}>{pct}%</span>
+
+            {/* POR ASESOR */}
+            <div style={{ ...card, marginBottom: '16px' }}>
+              <div style={sectionTitle}>Rendimiento por asesor</div>
+              {data.porAsesor.length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin gestiones en el período</p> : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr>
+                    {['Asesor', 'Gestiones', 'Contactados', 'Encuestas', 'Efectividad', 'Score', ''].map(h => <th key={h} style={th}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {data.porAsesor.map((a: Asesor) => {
+                      const efec = a.contactados ? Math.round(a.encuestas / a.contactados * 100) : 0
+                      const sc = avg(a.scores)
+                      return (
+                        <tr key={a.id} style={{ borderTop: '1px solid #F0EFE9' }}>
+                          <td style={{ ...td, fontFamily: 'DM Sans', fontWeight: 500 }}>{a.nombre}</td>
+                          <td style={td}>{a.gestiones}</td>
+                          <td style={{ ...td, color: '#1B4F8A', fontWeight: 600 }}>{a.contactados}</td>
+                          <td style={{ ...td, color: '#2D6A4F', fontWeight: 600 }}>{a.encuestas}</td>
+                          <td style={td}>{a.contactados ? `${efec}%` : '—'}</td>
+                          <td style={td}>{sc ? sc.toFixed(1) : '—'}</td>
+                          <td style={{ padding: '10px 0', width: '28%' }}>
+                            <div style={{ display: 'flex', height: '8px', borderRadius: '100px', overflow: 'hidden', background: '#F0EFE9', width: `${Math.max(4, a.gestiones / maxGestiones * 100)}%` }}>
+                              <div style={{ width: `${a.gestiones ? a.encuestas / a.gestiones * 100 : 0}%`, background: '#2D6A4F' }} />
+                              <div style={{ width: `${a.gestiones ? (a.contactados - a.encuestas) / a.gestiones * 100 : 0}%`, background: '#85B7EB' }} />
+                              <div style={{ flex: 1, background: '#D3D1C7' }} />
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', fontSize: '11.5px', color: '#6B6A64', flexWrap: 'wrap' }}>
+                <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#2D6A4F', marginRight: 5 }} />Encuesta realizada</span>
+                <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#85B7EB', marginRight: 5 }} />Contactado sin encuesta</span>
+                <span><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#D3D1C7', marginRight: 5 }} />Sin contacto / dato erróneo</span>
               </div>
-              <div style={{ background: '#F0EFE9', borderRadius: '100px', height: '10px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: '#2D6A4F', borderRadius: '100px', width: `${pct}%`, transition: 'width 0.5s' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11.5px', color: '#9E9C95' }}>
-                <span>{data.encuestados} encuestados</span><span>{data.totalClientes - data.encuestados} pendientes</span>
+              <div style={{ fontSize: '11px', color: '#9E9C95', marginTop: '8px' }}>
+                Contactados = atendió alguien (Encuestado, Fin de gestión, No acepta encuesta, Rellamar o No es titular). Efectividad = encuestas sobre contactados.
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '18px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '12px' }}>Por operador</div>
-                {data.porOperador.length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin datos</p> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead><tr>{['Operador','Gestiones','Encuestados','Score'].map(h => <th key={h} style={{ fontSize: '11px', color: '#9E9C95', textAlign: 'left', padding: '4px 0 8px', fontWeight: 500, textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-                    <tbody>{data.porOperador.sort((a: any,b: any) => b.encuestados-a.encuestados).map((op: any) => {
-                      const avg = op.scores.length ? (op.scores.reduce((a: number,b: number) => a+b,0)/op.scores.length).toFixed(1) : '—'
-                      return <tr key={op.nombre} style={{ borderTop: '1px solid #F0EFE9' }}><td style={{ padding: '8px 0', fontSize: '13px' }}>{op.nombre}</td><td style={{ padding: '8px 0', fontSize: '13px', fontFamily: 'DM Mono' }}>{op.total}</td><td style={{ padding: '8px 0', fontSize: '13px', fontFamily: 'DM Mono', color: '#2D6A4F' }}>{op.encuestados}</td><td style={{ padding: '8px 0', fontSize: '13px', fontFamily: 'DM Mono' }}>{avg}</td></tr>
-                    })}</tbody>
-                  </table>
-                )}
+
+            {/* AVANCE GLOBAL */}
+            <div style={{ ...card, marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 500 }}>Avance total de la campaña (desde el inicio)</span>
+                <span style={{ fontSize: '13px', fontFamily: 'DM Mono', color: '#2D6A4F', fontWeight: 600 }}>{avance}%</span>
               </div>
-              <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '18px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '12px' }}>Distribución por estado</div>
-                {Object.keys(data.porEstado).length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin datos</p> : Object.entries(data.porEstado).sort((a: any,b: any) => b[1]-a[1]).map(([estado, count]: any) => {
-                  const total = Object.values(data.porEstado).reduce((a: any,b: any) => a+b, 0) as number
-                  const p = Math.round(count/total*100)
-                  const c = colorEstado[estado] ?? '#9E9C95'
+              <div style={{ background: '#F0EFE9', borderRadius: '100px', height: '10px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: '#2D6A4F', borderRadius: '100px', width: `${avance}%`, transition: 'width 0.5s' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11.5px', color: '#9E9C95' }}>
+                <span>{data.encuestadosTotal} encuestados</span><span>{data.totalClientes} clientes en la base</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={card}>
+                <div style={sectionTitle}>Distribución por estado</div>
+                {Object.keys(data.porEstado).length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin datos</p> : Object.entries(data.porEstado).sort((a: any, b: any) => b[1] - a[1]).map(([estado, count]: any) => {
+                  const p = Math.round(count / data.gestiones * 100)
+                  const c = ESTADO_COLORS[estado as EstadoGestion]?.color ?? '#9E9C95'
                   return <div key={estado} style={{ marginBottom: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                       <span style={{ fontSize: '12.5px' }}>{ESTADO_LABELS[estado as EstadoGestion] ?? estado}</span>
@@ -116,18 +216,23 @@ export default function MetricasPage() {
                   </div>
                 })}
               </div>
-            </div>
-            <div style={{ background: '#fff', border: '1px solid #E2E0D8', borderRadius: '10px', padding: '18px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#9E9C95', marginBottom: '12px' }}>Por concesionaria</div>
-              {data.porConcesionaria.length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin datos</p> : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead><tr>{['Concesionaria','Gestiones','Score prom.'].map(h => <th key={h} style={{ fontSize: '11px', color: '#9E9C95', textAlign: 'left', padding: '4px 0 8px', fontWeight: 500, textTransform: 'uppercase' }}>{h}</th>)}</tr></thead>
-                  <tbody>{data.porConcesionaria.sort((a: any,b: any) => b.total-a.total).map((c: any) => {
-                    const avg = c.scores.length ? (c.scores.reduce((a: number,b: number) => a+b,0)/c.scores.length).toFixed(1) : '—'
-                    return <tr key={c.nombre} style={{ borderTop: '1px solid #F0EFE9' }}><td style={{ padding: '8px 0', fontSize: '13px' }}>{c.nombre}</td><td style={{ padding: '8px 0', fontSize: '13px', fontFamily: 'DM Mono' }}>{c.total}</td><td style={{ padding: '8px 0', fontSize: '13px', fontFamily: 'DM Mono', color: parseFloat(avg) >= 4 ? '#2D6A4F' : '#7D4F00' }}>{avg}</td></tr>
-                  })}</tbody>
-                </table>
-              )}
+              <div style={card}>
+                <div style={sectionTitle}>Por concesionaria</div>
+                {data.porConcesionaria.length === 0 ? <p style={{ fontSize: '13px', color: '#9E9C95' }}>Sin datos</p> : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead><tr>{['Concesionaria', 'Gestiones', 'Encuestas', 'Score'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+                    <tbody>{data.porConcesionaria.map((c: any) => {
+                      const sc = avg(c.scores)
+                      return <tr key={c.nombre} style={{ borderTop: '1px solid #F0EFE9' }}>
+                        <td style={{ ...td, fontFamily: 'DM Sans' }}>{c.nombre}</td>
+                        <td style={td}>{c.total}</td>
+                        <td style={{ ...td, color: '#2D6A4F' }}>{c.encuestas}</td>
+                        <td style={{ ...td, color: sc && sc >= 4 ? '#2D6A4F' : '#7D4F00' }}>{sc ? sc.toFixed(1) : '—'}</td>
+                      </tr>
+                    })}</tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </>
         )}
