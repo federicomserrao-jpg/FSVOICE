@@ -54,7 +54,7 @@ export default function MetricasDashboard(props: Props) {
         {/* KPIs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
           {[
-            { label: 'Total clientes', value: props.totalClientes, sub: 'Base Car One', color: '#1A1917' },
+            { label: 'Total clientes', value: props.totalClientes, sub: 'Base Grupo Antelo', color: '#1A1917' },
             { label: 'Gestiones período', value: props.totalGestiones, sub: `${desde} → ${hasta}`, color: '#1B4F8A' },
             { label: 'Encuestados', value: props.encuestados, sub: `${pct}% del total`, color: '#2D6A4F' },
             { label: 'Score promedio', value: props.avgScore ? props.avgScore.toFixed(1) : '—', sub: 'Recomendación / 5', color: props.avgScore && props.avgScore >= 4 ? '#2D6A4F' : '#7D4F00' },

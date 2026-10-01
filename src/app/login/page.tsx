@@ -42,8 +42,8 @@ function CarAnimation({ onDone }: { onDone: () => void }) {
 
       {/* Logo */}
       <div style={{ marginBottom: '40px', animation: 'bounce-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both', textAlign: 'center' }}>
-        <Image src="/logo-carone.png" alt="Car One" width={60} height={60} style={{ borderRadius: '12px', display: 'block', margin: '0 auto 10px' }} />
-        <div style={{ fontSize: '18px', fontWeight: 700, color: '#1A1917', letterSpacing: '-0.3px' }}>CAR ONE</div>
+        <Image src="/logo-antelo-icon.png" alt="Grupo Antelo" width={60} height={60} style={{ borderRadius: '12px', display: 'block', margin: '0 auto 10px' }} />
+        <div style={{ fontSize: '18px', fontWeight: 700, color: '#1A1917', letterSpacing: '-0.3px' }}>GRUPO ANTELO</div>
         <div style={{ fontSize: '11px', color: '#9E9C95', fontFamily: 'DM Mono, monospace', letterSpacing: '0.8px', marginTop: '2px' }}>GESTIÓN CSAT</div>
       </div>
 
@@ -171,8 +171,8 @@ export default function LoginPage() {
       <main style={{ minHeight: '100vh', background: '#F5F4F0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
         <div style={{ width: '100%', maxWidth: '400px', padding: '0 16px' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <Image src="/logo-carone.png" alt="Car One" width={80} height={80} style={{ borderRadius: '14px', display: 'block', margin: '0 auto 14px auto' }} />
-            <h1 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.5px', color: '#1A1917', margin: 0 }}>CAR ONE</h1>
+            <Image src="/logo-antelo-icon.png" alt="Grupo Antelo" width={80} height={80} style={{ borderRadius: '14px', display: 'block', margin: '0 auto 14px auto' }} />
+            <h1 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.5px', color: '#1A1917', margin: 0 }}>GRUPO ANTELO</h1>
             <p style={{ fontSize: '12px', color: '#9E9C95', marginTop: '4px', fontFamily: 'DM Mono, monospace', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Gestión CSAT</p>
           </div>
 

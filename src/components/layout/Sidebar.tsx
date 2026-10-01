@@ -34,9 +34,9 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
 
       {/* LOGO */}
       <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Image src="/logo-carone.png" alt="Car One" width={36} height={36} style={{ borderRadius: '8px', flexShrink: 0 }} />
+        <Image src="/logo-antelo-icon.png" alt="Grupo Antelo" width={36} height={36} style={{ borderRadius: '8px', flexShrink: 0 }} />
         <div>
-          <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px', display: 'block', lineHeight: 1.2 }}>CAR ONE</span>
+          <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px', display: 'block', lineHeight: 1.2 }}>GRUPO ANTELO</span>
           <small style={{ fontSize: '10px', opacity: 0.4, fontFamily: 'DM Mono, monospace', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Gestión CSAT</small>
         </div>
       </div>
