@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
-    const user = users?.find(u => u.email === email)
+    const buscado = String(email).trim().toLowerCase()
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+    const user = users?.find(u => (u.email ?? '').toLowerCase() === buscado)
     if (!user) return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
 
     await supabaseAdmin.auth.admin.updateUserById(user.id, { email_confirm: true })

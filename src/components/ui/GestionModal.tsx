@@ -152,6 +152,10 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
         if (errIns) throw errIns
         if (nueva) await supabase.from('historial_cambios').insert({ gestion_id: nueva.id, operador_id: perfil.id, campo_modificado: 'estado', valor_anterior: null, valor_nuevo: payload.estado })
       }
+      // Registro del intento: una fila por cada vez que un asesor guarda una gestión (productividad diaria).
+      // Si la tabla todavía no existe, no frena el guardado.
+      await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado }).then(() => {}, () => {})
+
       setSaving(false)
       setToast({ msg: 'Gestión guardada correctamente', type: 'success' })
     } catch(err) {

@@ -150,9 +150,9 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true); setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password })
     if (error) {
-      setError('Email o contraseña incorrectos.')
+      setError(/confirm/i.test(error.message) ? 'Tu usuario todavía no está habilitado. Avisale a tu supervisor.' : 'Email o contraseña incorrectos.')
       setLoading(false)
     } else {
       setShowCar(true) // Mostrar animación del auto

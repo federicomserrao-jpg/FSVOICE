@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { ESTADO_LABELS, ESTADO_COLORS, EstadoGestion } from '@/types'
 import { fetchAll } from '@/lib/utils'
@@ -54,6 +54,46 @@ export default function MetricasPage() {
         if (g.estado === 'encuestado') { a.encuestas++; if (g.score_recomendacion) a.scores.push(g.score_recomendacion) }
       })
 
+      // ── Productividad por día: se arma con los intentos (una fila por cada guardado) ──
+      const d7 = new Date(`${h}T00:00:00`); d7.setDate(d7.getDate() - 6)
+      const dDia = d < iso(d7) ? d : iso(d7)
+      let intentos: any[] | null = null
+      try {
+        intentos = await fetchAll((from, to) =>
+          supabase.from('intentos')
+            .select('id, cliente_id, operador_id, estado, created_at')
+            .gte('created_at', new Date(`${dDia}T00:00:00`).toISOString()).lte('created_at', fin)
+            .order('created_at', { ascending: true }).order('id', { ascending: true })
+            .range(from, to))
+      } catch { intentos = null }
+
+      let porDia: any = null
+      if (intentos) {
+        // día → asesor → cliente → último estado de ese día (un cliente cuenta una vez por día y por asesor)
+        const mapa: Record<string, Record<string, Map<string, string>>> = {}
+        intentos.forEach((i: any) => {
+          const dia = iso(new Date(i.created_at))
+          ;((mapa[dia] ??= {})[i.operador_id] ??= new Map()).set(i.cliente_id, i.estado)
+          if (!porAsesor[i.operador_id]) porAsesor[i.operador_id] = { id: i.operador_id, nombre: (perfiles ?? []).find((p: any) => p.id === i.operador_id)?.nombre ?? 'Desconocido', gestiones: 0, contactados: 0, encuestas: 0, scores: [] }
+        })
+        const dias: string[] = []
+        for (const x = new Date(`${h}T00:00:00`); iso(x) >= dDia; x.setDate(x.getDate() - 1)) dias.push(iso(x))
+        const cuenta = (m?: Map<string, string>) => {
+          const est = m ? Array.from(m.values()) : []
+          return { g: est.length, c: est.filter(e => ESTADOS_CONTACTADO.includes(e)).length, e: est.filter(e => e === 'encuestado').length }
+        }
+        const filas = dias.map(dia => {
+          const celdas: Record<string, { g: number; c: number; e: number }> = {}
+          const total = { g: 0, c: 0, e: 0 }
+          Object.keys(porAsesor).forEach(id => {
+            const c = cuenta(mapa[dia]?.[id]); celdas[id] = c
+            total.g += c.g; total.c += c.c; total.e += c.e
+          })
+          return { dia, celdas, total }
+        })
+        porDia = { filas: dias.length > 14 ? filas.filter(f => f.total.g > 0) : filas, desde: dDia }
+      }
+
       const porEstado: Record<string, number> = {}
       lista.forEach((g: any) => { porEstado[g.estado] = (porEstado[g.estado] ?? 0) + 1 })
 
@@ -75,6 +115,7 @@ export default function MetricasPage() {
         avgScore: avg(lista.filter((g: any) => g.score_recomendacion).map((g: any) => g.score_recomendacion)),
         porAsesor: Object.values(porAsesor).sort((a, b) => b.encuestas - a.encuestas || b.contactados - a.contactados),
         porEstado,
+        porDia,
         porConcesionaria: Object.entries(porConc).map(([nombre, d]) => ({ nombre, ...d })).sort((a, b) => b.total - a.total),
       })
     } catch (e: any) {
@@ -184,6 +225,58 @@ export default function MetricasPage() {
               <div style={{ fontSize: '11px', color: '#727A84', marginTop: '8px' }}>
                 Contactados = atendió alguien (Encuestado, Fin de gestión, No acepta encuesta, Rellamar o No es titular). Efectividad = encuestas sobre contactados.
               </div>
+            </div>
+
+            {/* PRODUCTIVIDAD POR DÍA */}
+            <div style={{ ...card, marginBottom: '16px' }}>
+              <div style={sectionTitle}>Productividad por día</div>
+              {!data.porDia ? (
+                <p style={{ fontSize: '13px', color: '#565D66' }}>Falta activar el registro diario en la base de datos. Ejecutá el archivo PASO_productividad_diaria.sql en Supabase y recargá esta página.</p>
+              ) : data.porDia.filas.length === 0 ? (
+                <p style={{ fontSize: '13px', color: '#727A84' }}>Todavía no hay gestiones registradas en estos días.</p>
+              ) : (
+                <>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead><tr>
+                        <th style={th}>Día</th>
+                        {data.porAsesor.map((a: Asesor) => <th key={a.id} style={th}>{a.nombre}</th>)}
+                        <th style={th}>Total del día</th>
+                      </tr></thead>
+                      <tbody>
+                        {data.porDia.filas.map((f: any) => {
+                          const fecha = new Date(`${f.dia}T12:00:00`)
+                          const celda = (c: { g: number; c: number; e: number }, fuerte = false) => (
+                            <td style={{ ...td, verticalAlign: 'top' }}>
+                              {c.g === 0 ? <span style={{ color: '#BCC3CB' }}>—</span> : (
+                                <>
+                                  <div style={{ fontSize: fuerte ? '20px' : '18px', fontWeight: 700, fontStretch: '112%', lineHeight: 1.2 }}>{c.g} <span style={{ fontSize: '12px', fontWeight: 400, fontStretch: '100%', color: '#727A84' }}>datos</span></div>
+                                  <div style={{ fontSize: '12px', color: '#565D66' }}>
+                                    <span style={{ color: '#1B4F8A', fontWeight: 600 }}>{c.c}</span> contactados, <span style={{ color: '#2D6A4F', fontWeight: 600 }}>{c.e}</span> encuestas
+                                  </div>
+                                </>
+                              )}
+                            </td>
+                          )
+                          return (
+                            <tr key={f.dia} style={{ borderTop: '1px solid #F3F5F7', background: f.dia === hoy ? '#FFFBEA' : undefined }}>
+                              <td style={{ ...td, whiteSpace: 'nowrap', verticalAlign: 'top', paddingLeft: f.dia === hoy ? '8px' : 0 }}>
+                                <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{fecha.toLocaleDateString('es-AR', { weekday: 'long' })}</div>
+                                <div style={{ fontSize: '12px', color: '#727A84' }}>{f.dia === hoy ? 'Hoy, ' : ''}{fmt(f.dia)}</div>
+                              </td>
+                              {data.porAsesor.map((a: Asesor) => <Fragment key={a.id}>{celda(f.celdas[a.id] ?? { g: 0, c: 0, e: 0 })}</Fragment>)}
+                              {celda(f.total, true)}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#727A84', marginTop: '10px' }}>
+                    Datos = clientes distintos que el asesor gestionó ese día, haya atendido alguien o no. Si llamó dos veces al mismo cliente en el día, cuenta una vez. Se muestran como mínimo los últimos 7 días.
+                  </p>
+                </>
+              )}
             </div>
 
             {/* AVANCE GLOBAL */}
