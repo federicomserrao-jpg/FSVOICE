@@ -42,6 +42,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [showHistorial, setShowHistorial] = useState(false)
+  const [bitacora, setBitacora] = useState<any[]>([])
   const [gestionExistente, setGestionExistente] = useState<any>(null)
   const [form, setForm] = useState({ ...INIT })
   const [errors, setErrors] = useState<string[]>([])
@@ -72,6 +73,8 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
         coloco_accesorios: g.coloco_accesorios ?? '', accesorios_detalle: g.accesorios_detalle ?? '',
         satisfaccion_equipamiento: g.satisfaccion_equipamiento ?? '',
       }))
+      const { data: bit } = await supabase.from('intentos').select('id, estado, nota, created_at, operador_id, operador:perfiles(nombre)').eq('cliente_id', cliente.id).order('created_at', { ascending: false })
+      setBitacora(bit ?? [])
       const { data: hist } = await supabase.from('historial_cambios').select('*, operador:perfiles(nombre)').eq('gestion_id', g.id).order('created_at', { ascending: false })
       setHistorial(hist ?? [])
     }
@@ -155,7 +158,13 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       }
       // Registro del intento: una fila por cada vez que un asesor guarda una gestión (productividad diaria).
       // Si la tabla todavía no existe, no frena el guardado.
-      await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado }).then(() => {}, () => {})
+      const notas = [
+        payload.estado === 'rellamar' && payload.fecha_rellamar ? `Rellamar el ${fmtFechaHora(payload.fecha_rellamar)}${payload.motivo_rellamar ? `: ${payload.motivo_rellamar}` : ''}` : null,
+        payload.observaciones && payload.observaciones !== (gestionExistente?.observaciones ?? null) ? payload.observaciones : null,
+      ].filter(Boolean).join(' · ') || null
+      const { error: errInt } = await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado, nota: notas })
+      // Si todavía no existe la columna de notas, igual queda registrado el intento
+      if (errInt) await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado }).then(() => {}, () => {})
 
       registrar('gestion', `${[cliente.apellido, cliente.nombre].filter(Boolean).join(', ')}: ${ESTADO_LABELS[payload.estado as EstadoGestion] ?? payload.estado}`, cliente.id)
       setSaving(false)
@@ -233,6 +242,26 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
               <strong>Cliente prioritario.</strong> {cliente.prioridad_motivo}
             </div>
           )}
+          {bitacora.length > 0 && (
+            <div style={{ margin: '0 24px 14px', border: '1px solid #DDE1E6', borderRadius: '10px', overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', background: '#F6F8FA', fontSize: '13px', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Bitácora de llamadas</span>
+                <span style={{ fontWeight: 500, color: '#565D66' }}>{bitacora.length} {bitacora.length === 1 ? 'intento' : 'intentos'}</span>
+              </div>
+              <ol style={{ listStyle: 'none', maxHeight: '168px', overflowY: 'auto' }}>
+                {bitacora.map(b => (
+                  <li key={b.id} style={{ padding: '9px 14px', borderTop: '1px solid #F3F5F7', fontSize: '13px', display: 'grid', gridTemplateColumns: '132px 1fr', gap: '10px' }}>
+                    <span style={{ color: '#565D66', whiteSpace: 'nowrap' }}>{fmtFechaHora(b.created_at)}</span>
+                    <span>
+                      <strong>{b.operador?.nombre ?? 'Usuario'}</strong>{b.operador_id === perfil.id ? ' (vos)' : ''}: {ESTADO_LABELS[b.estado as EstadoGestion] ?? b.estado}
+                      {b.nota && <span style={{ display: 'block', color: '#565D66', marginTop: '2px' }}>{b.nota}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* STEPS */}
           <div style={{ display: 'flex', padding: '14px 24px', background: '#F3F5F7', borderBottom: '1px solid #DDE1E6', gap: 0 }}>
             {[{n:1,label:'Validación'},{n:2,label:'Experiencia'},{n:3,label:'Post-compra'}].map((s, i) => (
