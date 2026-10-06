@@ -226,6 +226,11 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
             </div>
           )}
 
+          {cliente.prioridad && (
+            <div style={{ margin: '0 24px 14px', padding: '10px 14px', borderRadius: '10px', background: '#FFF6D6', border: '1px solid #FFC61A', fontSize: '13px' }}>
+              <strong>Cliente prioritario.</strong> {cliente.prioridad_motivo}
+            </div>
+          )}
           {/* STEPS */}
           <div style={{ display: 'flex', padding: '14px 24px', background: '#F3F5F7', borderBottom: '1px solid #DDE1E6', gap: 0 }}>
             {[{n:1,label:'Validación'},{n:2,label:'Experiencia'},{n:3,label:'Post-compra'}].map((s, i) => (

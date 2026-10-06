@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import NuevoClienteModal from './NuevoClienteModal'
 import { useRouter } from 'next/navigation'
 import { Perfil, EstadoGestion, ESTADO_LABELS, ESTADO_COLORS } from '@/types'
 import GestionModal from './GestionModal'
@@ -48,6 +49,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
   const [showCorrecciones, setShowCorrecciones] = useState(false)
   const [showMasFiltros, setShowMasFiltros] = useState(false)
   const [pagina, setPagina] = useState(1)
+  const [showNuevo, setShowNuevo] = useState(false)
   const [sortCol, setSortCol] = useState<string>('apellido')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc')
 
@@ -100,7 +102,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
   const filtrados = useMemo(() => {
     let res = clientes.filter(c => {
       const estado = getUltimoEstado(c)
-      const matchFiltro = filtro === 'todos' || estado === filtro
+      const matchFiltro = filtro === 'todos' || (filtro === 'prioritarios' ? !!c.prioridad : estado === filtro)
       const q = search.toLowerCase().trim()
       const matchSearch = !q ||
         `${c.nombre ?? ''} ${c.apellido ?? ''}`.toLowerCase().includes(q) ||
@@ -118,7 +120,11 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
     })
 
     // Ordenamiento
+    const abierto = (c: any) => !!c.prioridad && ['pendiente','rellamar','sin_contacto'].includes(getUltimoEstado(c))
     res = [...res].sort((a, b) => {
+      // Los prioritarios sin cerrar van siempre primero
+      const pa = abierto(a), pb = abierto(b)
+      if (pa !== pb) return pa ? -1 : 1
       let va = '', vb = ''
       if (sortCol === 'apellido') { va = `${a.apellido ?? ''} ${a.nombre ?? ''}`.toLowerCase(); vb = `${b.apellido ?? ''} ${b.nombre ?? ''}`.toLowerCase() }
       else if (sortCol === 'concesionaria') { va = a.concesionaria ?? ''; vb = b.concesionaria ?? '' }
@@ -188,7 +194,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 12px', height: '38px' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#727A84" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" placeholder="Nombre, DNI, CUIT o teléfono..." value={search} onChange={e => setSearchConReset(e.target.value)}
-              style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', width: '250px', fontFamily: 'inherit', color: '#14171A' }} />
+              style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', width: '210px', fontFamily: 'inherit', color: '#14171A' }} />
             {search && <button onClick={() => setSearchConReset('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#727A84', fontSize: '14px', padding: 0, lineHeight: 1 }}>×</button>}
           </div>
           <button onClick={() => setShowCorrecciones(!showCorrecciones)} className="btn-transition"
@@ -201,6 +207,12 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
           </button>
+          {perfil.rol === 'admin' && (
+            <button onClick={() => setShowNuevo(true)} className="btn" style={{ height: '38px' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar cliente
+            </button>
+          )}
           {perfil.rol === 'admin' && (
             <button onClick={() => router.push('/admin')} className="btn-transition"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '38px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: 'none', background: '#14171A', color: '#fff', fontFamily: 'inherit' }}>
@@ -308,6 +320,12 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
               </button>
             )
           })}
+          {clientes.some(c => c.prioridad) && (
+            <button onClick={() => setFiltroConReset('prioritarios')} className="btn-transition"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', border: '1px solid', borderColor: filtro === 'prioritarios' ? '#14171A' : '#FFC61A', background: filtro === 'prioritarios' ? '#14171A' : '#FFF6D6', color: filtro === 'prioritarios' ? '#fff' : '#14171A', fontWeight: 600, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+              Prioritarios <span style={{ fontSize: '11px', opacity: 0.7 }}>{clientes.filter(c => c.prioridad).length}</span>
+            </button>
+          )}
 
           {/* Más filtros desplegable */}
           <div style={{ position: 'relative' }}>
@@ -403,6 +421,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
                             </strong>
                             <span style={{ fontSize: '12px', color: '#727A84' }}>{doc.label} {doc.value}</span>
                           </div>
+                          {c.prioridad && <span title={c.prioridad_motivo ?? 'Cliente prioritario'} style={{ flexShrink: 0, marginTop: '1px', fontSize: '11px', background: '#FFC61A', color: '#000', borderRadius: '5px', padding: '2px 7px', fontWeight: 700 }}>Prioritario</span>}
                           {esDuplicado && <span title="Posible duplicado" style={{ flexShrink: 0, marginTop: '1px', fontSize: '9.5px', background: '#FEF3C7', color: '#92400E', border: '1px solid #F59E0B', borderRadius: '4px', padding: '1px 5px', fontWeight: 700, letterSpacing: '0' }}>DUP</span>}
                         </div>
                       </td>
@@ -460,6 +479,8 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
 
       {/* Click outside para cerrar dropdown */}
       {showMasFiltros && <div style={{ position: 'fixed', inset: 0, zIndex: 5 }} onClick={() => setShowMasFiltros(false)} />}
+
+      {showNuevo && <NuevoClienteModal perfil={perfil} onClose={() => setShowNuevo(false)} onCreado={() => { setShowNuevo(false); setFiltroConReset('prioritarios'); if (onRefresh) onRefresh() }} />}
 
       {clienteSeleccionado && (
         <GestionModal cliente={clienteSeleccionado} perfil={perfil} onClose={() => { setClienteSeleccionado(null); if (onRefresh) onRefresh() }} />
