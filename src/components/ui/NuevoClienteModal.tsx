@@ -1,4 +1,5 @@
 'use client'
+import { registrar } from '@/lib/actividad'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Perfil } from '@/types'
@@ -27,6 +28,7 @@ export default function NuevoClienteModal({ perfil, onClose, onCreado }: { perfi
     })
     setGuardando(false)
     if (err) { console.error(err); return setError('No se pudo guardar el cliente. Revisá los datos e intentá de nuevo.') }
+    registrar('cliente_agregado', `${[f.apellido, f.nombre].filter(Boolean).join(', ').toUpperCase()}${f.prioridad ? ' (prioritario)' : ''}`)
     onCreado()
   }
 

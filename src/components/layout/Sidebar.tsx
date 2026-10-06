@@ -1,4 +1,5 @@
 'use client'
+import { registrar } from '@/lib/actividad'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Perfil } from '@/types'
@@ -10,6 +11,7 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
 
   async function handleLogout() {
     const supabase = createClient()
+    await registrar('salida')
     await supabase.auth.signOut()
     router.push('/login'); router.refresh()
   }

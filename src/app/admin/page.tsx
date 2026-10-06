@@ -1,8 +1,14 @@
 'use client'
+import { registrar, ACCION_LABEL } from '@/lib/actividad'
+import { fetchAll } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Perfil } from '@/types'
+
+const isoLocal = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+const fmtDia = (iso: string) => new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+const ctl = { height: '34px', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 10px', fontSize: '13px', background: '#fff', color: '#14171A' } as const
 
 export default function AdminPage() {
   const router = useRouter()
@@ -14,7 +20,40 @@ export default function AdminPage() {
   const [creando, setCreando] = useState(false)
   const [msg, setMsg] = useState('')
 
+  const hoy = isoLocal(new Date())
+  const [desde, setDesde] = useState(hoy)
+  const [hasta, setHasta] = useState(hoy)
+  const [usuario, setUsuario] = useState('todos')
+  const [actividad, setActividad] = useState<any[] | null>([])
+  const [cargandoAct, setCargandoAct] = useState(true)
+
   useEffect(() => { loadPerfiles() }, [])
+  useEffect(() => { loadActividad() }, [desde, hasta])
+
+  async function loadActividad() {
+    setCargandoAct(true)
+    try {
+      const supabase = createClient()
+      const lista = await fetchAll((from, to) =>
+        supabase.from('actividad').select('id, usuario_id, accion, detalle, created_at')
+          .gte('created_at', new Date(`${desde}T00:00:00`).toISOString())
+          .lte('created_at', new Date(`${hasta}T23:59:59.999`).toISOString())
+          .order('created_at', { ascending: false }).order('id', { ascending: true })
+          .range(from, to))
+      setActividad(lista)
+    } catch { setActividad(null) }
+    setCargandoAct(false)
+  }
+
+  const nombreDe = (id: string) => perfiles.find(p => p.id === id)?.nombre ?? 'Usuario eliminado'
+  const hora = (iso: string) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const visibles = (actividad ?? []).filter(a => usuario === 'todos' || a.usuario_id === usuario)
+  const resumen = perfiles.map(p => {
+    const suyas = (actividad ?? []).filter(a => a.usuario_id === p.id)
+    const ingresos = suyas.filter(a => a.accion === 'ingreso')
+    return { p, total: suyas.length, gestiones: suyas.filter(a => a.accion === 'gestion').length,
+      primerIngreso: ingresos.length ? ingresos[ingresos.length - 1].created_at : null, ultima: suyas[0]?.created_at ?? null }
+  }).filter(r => r.total > 0)
 
   async function loadPerfiles() {
     const supabase = createClient()
@@ -26,6 +65,7 @@ export default function AdminPage() {
     if (!nombre || !email || !password) { setMsg('Completá todos los campos'); return }
     setCreando(true); setMsg('')
     const supabase = createClient()
+    await registrar('usuario_creado', `${nombre} (${email.trim().toLowerCase()}, ${rol})`)
 
     // 1. Crear usuario en Supabase Auth
     const { error } = await supabase.auth.signUp({
@@ -123,6 +163,64 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Historial de actividad */}
+        <div style={{ background: '#fff', border: '1px solid #DDE1E6', borderRadius: '14px', padding: '20px', marginTop: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, marginRight: 'auto' }}>Historial de actividad</div>
+            <select value={usuario} onChange={e => setUsuario(e.target.value)} aria-label="Usuario" style={ctl}>
+              <option value="todos">Todos los usuarios</option>
+              {perfiles.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+            <input type="date" value={desde} max={hasta} onChange={e => setDesde(e.target.value)} aria-label="Desde" style={ctl} />
+            <span style={{ fontSize: '13px', color: '#727A84' }}>a</span>
+            <input type="date" value={hasta} min={desde} onChange={e => setHasta(e.target.value)} aria-label="Hasta" style={ctl} />
+            <button onClick={loadActividad} className="btn">Actualizar</button>
+          </div>
+
+          {actividad === null ? (
+            <p style={{ fontSize: '13px', color: '#565D66' }}>Falta activar el historial en la base de datos. Ejecutá el archivo PASO_historial_actividad.sql en Supabase y recargá esta página.</p>
+          ) : cargandoAct ? (
+            <p style={{ fontSize: '13px', color: '#727A84' }}>Cargando historial…</p>
+          ) : (actividad.length === 0) ? (
+            <p style={{ fontSize: '13px', color: '#727A84' }}>Nadie registró actividad en estas fechas. Probá ampliando el rango.</p>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '18px' }}>
+                {resumen.map(r => (
+                  <button key={r.p.id} onClick={() => setUsuario(usuario === r.p.id ? 'todos' : r.p.id)}
+                    style={{ textAlign: 'left', padding: '10px 14px', borderRadius: '10px', cursor: 'pointer', fontFamily: 'inherit', minWidth: '190px', border: '1px solid', borderColor: usuario === r.p.id ? '#14171A' : '#DDE1E6', background: usuario === r.p.id ? '#F3F5F7' : '#fff' }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600 }}>{r.p.nombre}</div>
+                    <div style={{ fontSize: '12px', color: '#565D66', marginTop: '2px' }}>
+                      {r.primerIngreso ? `Ingresó ${desde === hasta ? hora(r.primerIngreso) + ' hs' : fmtDia(r.primerIngreso)}` : 'Sin ingreso registrado'} · {r.gestiones} gestiones
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#727A84' }}>Última acción {desde === hasta ? hora(r.ultima) + ' hs' : fmtDia(r.ultima)}</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ maxHeight: '460px', overflowY: 'auto', borderTop: '1px solid #F3F5F7' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead><tr>
+                    {['Fecha y hora', 'Usuario', 'Qué hizo', 'Detalle'].map(h => <th key={h} style={{ position: 'sticky', top: 0, background: '#fff', textAlign: 'left', fontSize: '12.5px', fontWeight: 500, color: '#565D66', padding: '10px 12px 8px 0' }}>{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {visibles.slice(0, 500).map(a => (
+                      <tr key={a.id} style={{ borderTop: '1px solid #F3F5F7' }}>
+                        <td style={{ padding: '9px 12px 9px 0', fontSize: '13px', color: '#565D66', whiteSpace: 'nowrap' }}>{fmtDia(a.created_at)} {hora(a.created_at)}</td>
+                        <td style={{ padding: '9px 12px 9px 0', fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap' }}>{nombreDe(a.usuario_id)}</td>
+                        <td style={{ padding: '9px 12px 9px 0', fontSize: '13px', whiteSpace: 'nowrap' }}>{ACCION_LABEL[a.accion] ?? a.accion}</td>
+                        <td style={{ padding: '9px 0', fontSize: '13px', color: '#565D66' }}>{a.detalle ?? ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p style={{ fontSize: '12px', color: '#727A84', marginTop: '10px' }}>
+                {visibles.length > 500 ? `Se muestran las 500 acciones más recientes de ${visibles.length}. Acotá las fechas o elegí un usuario para ver el resto.` : `${visibles.length} acciones.`}
+              </p>
+            </>
+          )}
         </div>
       </div>
     </>

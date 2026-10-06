@@ -1,4 +1,5 @@
 'use client'
+import { registrar } from '@/lib/actividad'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Perfil, EstadoGestion, ESTADO_LABELS } from '@/types'
@@ -156,6 +157,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       // Si la tabla todavía no existe, no frena el guardado.
       await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado }).then(() => {}, () => {})
 
+      registrar('gestion', `${[cliente.apellido, cliente.nombre].filter(Boolean).join(', ')}: ${ESTADO_LABELS[payload.estado as EstadoGestion] ?? payload.estado}`, cliente.id)
       setSaving(false)
       setToast({ msg: 'Gestión guardada correctamente', type: 'success' })
     } catch(err) {

@@ -1,4 +1,5 @@
 'use client'
+import { registrar } from '@/lib/actividad'
 import { useState, useMemo } from 'react'
 import NuevoClienteModal from './NuevoClienteModal'
 import { useRouter } from 'next/navigation'
@@ -183,6 +184,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
     ws['!cols'] = Array(32).fill({ wch: 20 })
     const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g, '-')
     XLSX.writeFile(wb, `GrupoAntelo_Gestiones_${fecha}.xlsx`)
+    registrar('exportacion', `${gestiones.length} gestiones`)
   }
 
   return (

@@ -1,4 +1,5 @@
 'use client'
+import { registrar } from '@/lib/actividad'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -155,6 +156,7 @@ export default function LoginPage() {
       setError(/confirm/i.test(error.message) ? 'Tu usuario todavía no está habilitado. Avisale a tu supervisor.' : 'Email o contraseña incorrectos.')
       setLoading(false)
     } else {
+      registrar('ingreso')
       setShowCar(true) // Mostrar animación del auto
     }
   }
