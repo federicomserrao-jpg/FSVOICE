@@ -8,7 +8,7 @@ import { Perfil, EstadoGestion, ESTADO_LABELS, ESTADO_COLORS } from '@/types'
 import GestionModal from './GestionModal'
 import StarScore from './StarScore'
 import SkeletonTable from './SkeletonTable'
-import { formatDocumento, detectarDuplicados, fmtFecha, fmtFechaHora } from '@/lib/utils'
+import { formatDocumento, detectarDuplicados, fmtFecha, fmtFechaHora, aInputLocal } from '@/lib/utils'
 import * as XLSX from 'xlsx'
 
 interface Props {
@@ -159,7 +159,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
       let matchFecha = true
       if (filtroFechaRellamar && estado === 'rellamar') {
         const g = getUltimaGestion(c)
-        matchFecha = g?.fecha_rellamar?.startsWith(filtroFechaRellamar) ?? false
+        matchFecha = g?.fecha_rellamar ? aInputLocal(g.fecha_rellamar).startsWith(filtroFechaRellamar) : false
       } else if (filtroFechaRellamar && estado !== 'rellamar') {
         matchFecha = false
       }

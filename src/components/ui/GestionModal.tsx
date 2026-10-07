@@ -1,9 +1,9 @@
 'use client'
 import { registrar } from '@/lib/actividad'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Perfil, EstadoGestion, ESTADO_LABELS } from '@/types'
-import { fmtFecha, fmtFechaHora } from '@/lib/utils'
+import { fmtFecha, fmtFechaHora, aInputLocal, deInputLocal } from '@/lib/utils'
 import Toast from './Toast'
 
 interface Props { cliente: any; perfil: Perfil; onClose: () => void; onGuardado?: () => void }
@@ -40,6 +40,8 @@ const INIT = {
 export default function GestionModal({ cliente, perfil, onClose, onGuardado }: Props) {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [guardado, setGuardado] = useState(false) // ya se guardó: bloquea un segundo guardado mientras cierra
+  const enCurso = useRef(false)
   const [historial, setHistorial] = useState<any[]>([])
   const [showHistorial, setShowHistorial] = useState(false)
   const [bitacora, setBitacora] = useState<any[]>([])
@@ -56,7 +58,7 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
     if (data && data.length > 0) {
       const g = data[0]; setGestionExistente(g)
       setForm(prev => ({ ...prev,
-        estado: g.estado ?? 'pendiente', fecha_rellamar: g.fecha_rellamar ?? '',
+        estado: g.estado ?? 'pendiente', fecha_rellamar: aInputLocal(g.fecha_rellamar),
         motivo_rellamar: g.motivo_rellamar ?? '', observaciones: g.observaciones ?? '',
         nombre_verificado: g.nombre_verificado, nombre_corregido: g.nombre_corregido ?? '',
         email_verificado: g.email_verificado, email_corregido: g.email_corregido ?? '',
@@ -118,11 +120,13 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
   async function guardar() {
     const e = validateStep(step === 1 ? 1 : 3)
     if (e.length) { setErrors(e); return }
+    if (enCurso.current || guardado) return
+    enCurso.current = true
     setSaving(true)
     const supabase = createClient()
     const payload: any = {
       cliente_id: cliente.id, operador_id: perfil.id, estado: form.estado,
-      fecha_rellamar: form.fecha_rellamar || null, motivo_rellamar: form.motivo_rellamar || null,
+      fecha_rellamar: form.estado === 'rellamar' ? deInputLocal(form.fecha_rellamar) : null, motivo_rellamar: form.motivo_rellamar || null,
       observaciones: form.observaciones || null,
       nombre_verificado: form.nombre_verificado, nombre_corregido: form.nombre_verificado === false ? form.nombre_corregido : null,
       email_verificado: form.email_verificado, email_corregido: form.email_verificado === false ? form.email_corregido : null,
@@ -168,10 +172,11 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
 
       registrar('gestion', `${[cliente.apellido, cliente.nombre].filter(Boolean).join(', ')}: ${ESTADO_LABELS[payload.estado as EstadoGestion] ?? payload.estado}`, cliente.id)
       if (onGuardado) onGuardado()
+      setGuardado(true)
       setSaving(false)
       setToast({ msg: 'Gestión guardada correctamente', type: 'success' })
     } catch(err) {
-      console.error(err); setSaving(false)
+      console.error(err); setSaving(false); enCurso.current = false
       setErrors(['Error al guardar. Intentá de nuevo.'])
       setToast({ msg: 'Error al guardar', type: 'error' })
     }
@@ -402,13 +407,13 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
             <button onClick={onClose} className="btn">Cancelar</button>
             {step > 1 && <button onClick={prevStep} className="btn">← Anterior</button>}
             {step === 1 && esCierreRapido && (
-              <button onClick={guardar} disabled={saving} className="btn btn-primary" style={{ opacity: saving ? 0.7 : 1, minWidth: '120px', justifyContent: 'center' }}>
+              <button onClick={guardar} disabled={saving || guardado} className="btn btn-primary" style={{ opacity: saving || guardado ? 0.7 : 1, minWidth: '120px', justifyContent: 'center' }}>
                 {saving ? <><Spinner /> Guardando…</> : '✓ Guardar'}
               </button>
             )}
             {step < 3 && !esCierreRapido && <button onClick={nextStep} className="btn btn-primary">Siguiente →</button>}
             {step === 3 && (
-              <button onClick={guardar} disabled={saving} className="btn btn-primary" style={{ opacity: saving ? 0.7 : 1, minWidth: '140px', justifyContent: 'center' }}>
+              <button onClick={guardar} disabled={saving || guardado} className="btn btn-primary" style={{ opacity: saving || guardado ? 0.7 : 1, minWidth: '140px', justifyContent: 'center' }}>
                 {saving ? <><Spinner /> Guardando…</> : '✓ Guardar gestión'}
               </button>
             )}
@@ -417,7 +422,7 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
       </div>
 
       {/* TOAST */}
-      {toast && <Toast message={toast.msg} type={toast.type} onDone={() => { setToast(null); if (toast.type === 'success') onClose() }} />}
+      {toast && <Toast message={toast.msg} type={toast.type} duration={toast.type === 'success' ? 900 : 2800} onDone={() => { setToast(null); if (toast.type === 'success') onClose() }} />}
     </>
   )
 }

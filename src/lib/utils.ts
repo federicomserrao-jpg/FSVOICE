@@ -50,7 +50,7 @@ export function fmtFechaHora(fecha: string | null | undefined): string {
   if (!fecha) return '—'
   try {
     const d = new Date(fecha)
-    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
   } catch { return '—' }
 }
 
@@ -68,4 +68,19 @@ export async function fetchAll<T = any>(
     if (rows.length < pageSize) break
   }
   return out
+}
+
+// Fecha guardada (UTC) → valor para un <input type="datetime-local"> en hora local
+export function aInputLocal(fecha: string | null | undefined): string {
+  if (!fecha) return ''
+  const d = new Date(fecha)
+  if (isNaN(d.getTime())) return ''
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
+// Valor de un <input type="datetime-local"> (hora local) → instante exacto para guardar
+export function deInputLocal(valor: string | null | undefined): string | null {
+  if (!valor) return null
+  const d = new Date(valor)
+  return isNaN(d.getTime()) ? null : d.toISOString()
 }
