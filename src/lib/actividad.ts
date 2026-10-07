@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase'
 
-export type Accion = 'ingreso' | 'salida' | 'gestion' | 'cliente_agregado' | 'exportacion' | 'usuario_creado'
+export type Accion = 'apertura' | 'ingreso' | 'salida' | 'gestion' | 'cliente_agregado' | 'exportacion' | 'usuario_creado'
 
 export const ACCION_LABEL: Record<string, string> = {
   ingreso: 'Ingresó a la plataforma',
   salida: 'Cerró sesión',
+  apertura: 'Abrió un caso',
   gestion: 'Guardó una gestión',
   cliente_agregado: 'Agregó un cliente',
   exportacion: 'Exportó el Excel',

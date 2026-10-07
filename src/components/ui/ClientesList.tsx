@@ -1,6 +1,7 @@
 'use client'
 import { registrar } from '@/lib/actividad'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { createClient } from '@/lib/supabase'
 import NuevoClienteModal from './NuevoClienteModal'
 import { useRouter } from 'next/navigation'
 import { Perfil, EstadoGestion, ESTADO_LABELS, ESTADO_COLORS } from '@/types'
@@ -51,6 +52,51 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
   const [showMasFiltros, setShowMasFiltros] = useState(false)
   const [pagina, setPagina] = useState(1)
   const [showNuevo, setShowNuevo] = useState(false)
+  const [aviso, setAviso] = useState('')
+  const [buscando, setBuscando] = useState(false)
+  const enCola = useRef(false)      // true mientras el asesor trabaja con "Siguiente llamado"
+  const guardo = useRef(false)      // true si el último caso abierto se guardó
+  const VENTANA_MS = 30 * 60 * 1000 // un caso tomado se libera solo a los 30 minutos
+
+  const tomadoPorOtro = (c: any) => !!c.tomado_por && c.tomado_por !== perfil.id && !!c.tomado_en && Date.now() - new Date(c.tomado_en).getTime() < VENTANA_MS
+
+  // Abre un caso reservándolo: si otro asesor lo tiene abierto, no deja entrar
+  async function abrir(c: any, desdeCola = false) {
+    enCola.current = desdeCola; guardo.current = false; setAviso('')
+    if (perfil.rol === 'admin') { setClienteSeleccionado(c); return }
+    try {
+      const supabase = createClient()
+      const limite = new Date(Date.now() - VENTANA_MS).toISOString()
+      const { data, error } = await supabase.from('clientes').update({ tomado_por: perfil.id, tomado_en: new Date().toISOString() })
+        .eq('id', c.id).or(`tomado_por.is.null,tomado_por.eq.${perfil.id},tomado_en.lt.${limite}`).select('id')
+      if (!error && data && data.length === 0) { setAviso('Ese cliente lo está gestionando otro asesor en este momento. Elegí otro o usá "Siguiente llamado".'); return }
+    } catch { /* si la reserva falla, igual se puede gestionar */ }
+    setClienteSeleccionado(c)
+  }
+
+  // Pide a la base el próximo cliente de la cola. La base garantiza que dos asesores no reciban el mismo.
+  async function siguiente() {
+    setBuscando(true); setAviso('')
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc('tomar_siguiente', { p_operador: perfil.id })
+      if (error) throw error
+      const c = Array.isArray(data) ? data[0] : data
+      if (!c) { setAviso('No quedan clientes para llamar en este momento. Los rellamados aparecen cuando llega su horario.'); enCola.current = false }
+      else { enCola.current = true; guardo.current = false; setClienteSeleccionado(c) }
+    } catch (e) { console.error(e); setAviso('No se pudo obtener el siguiente llamado. Falta activar la cola en la base de datos (PASO_cola_tiempos_reportes.sql).') }
+    setBuscando(false)
+  }
+
+  async function cerrarCaso() {
+    const c = clienteSeleccionado
+    setClienteSeleccionado(null)
+    if (c && perfil.rol !== 'admin') {
+      try { await createClient().from('clientes').update({ tomado_por: null, tomado_en: null }).eq('id', c.id).eq('tomado_por', perfil.id) } catch {}
+    }
+    if (enCola.current && guardo.current) { await siguiente() } else { enCola.current = false }
+    if (onRefresh) onRefresh()
+  }
   const [sortCol, setSortCol] = useState<string>('apellido')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc')
 
@@ -196,7 +242,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 12px', height: '38px' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#727A84" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" placeholder="Nombre, DNI, CUIT o teléfono..." value={search} onChange={e => setSearchConReset(e.target.value)}
-              style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', width: '210px', fontFamily: 'inherit', color: '#14171A' }} />
+              style={{ border: 'none', background: 'none', outline: 'none', fontSize: '13.5px', width: '170px', fontFamily: 'inherit', color: '#14171A' }} />
             {search && <button onClick={() => setSearchConReset('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#727A84', fontSize: '14px', padding: 0, lineHeight: 1 }}>×</button>}
           </div>
           <button onClick={() => setShowCorrecciones(!showCorrecciones)} className="btn-transition"
@@ -208,6 +254,10 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '0 14px', height: '38px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', border: '1px solid #DDE1E6', background: '#fff', color: '#14171A', fontFamily: 'inherit' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
+          </button>
+          <button onClick={siguiente} disabled={buscando} className="btn" style={{ height: '38px', background: '#FFC61A', borderColor: '#FFC61A', color: '#000', fontWeight: 700 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            {buscando ? 'Buscando…' : 'Siguiente llamado'}
           </button>
           {perfil.rol === 'admin' && (
             <button onClick={() => setShowNuevo(true)} className="btn" style={{ height: '38px' }}>
@@ -232,6 +282,13 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
           <div style={{ background: '#FAE0E0', border: '1px solid #F09595', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '13px', color: '#8B2020', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <strong>{rellamadosVencidos} rellamados vencidos</strong> — tenían fecha programada anterior a hoy y aún no fueron gestionados.
+          </div>
+        )}
+
+        {aviso && (
+          <div role="status" style={{ background: '#fff', border: '1px solid #DDE1E6', borderLeft: '4px solid #FFC61A', borderRadius: '10px', padding: '12px 16px', marginBottom: '14px', fontSize: '13.5px', display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+            <span>{aviso}</span>
+            <button onClick={() => setAviso('')} aria-label="Cerrar aviso" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>×</button>
           </div>
         )}
 
@@ -269,7 +326,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {rellamadosHoy.slice(0, 6).map(c => (
-                <div key={c.id} onClick={() => setClienteSeleccionado(c)}
+                <div key={c.id} onClick={() => abrir(c)}
                   style={{ background: '#F6F8FA', border: '1px solid #DDE1E6', borderRadius: '14px', padding: '10px 14px', cursor: 'pointer', flex: '1 1 160px', maxWidth: '240px' }}
                   onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#ECEEF1'}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#F6F8FA'}>
@@ -424,6 +481,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
                             <span style={{ fontSize: '12px', color: '#727A84' }}>{doc.label} {doc.value}</span>
                           </div>
                           {c.prioridad && <span title={c.prioridad_motivo ?? 'Cliente prioritario'} style={{ flexShrink: 0, marginTop: '1px', fontSize: '11px', background: '#FFC61A', color: '#000', borderRadius: '5px', padding: '2px 7px', fontWeight: 700 }}>Prioritario</span>}
+                          {tomadoPorOtro(c) && <span style={{ flexShrink: 0, marginTop: '1px', fontSize: '11px', background: '#DDE9F8', color: '#1B4F8A', borderRadius: '5px', padding: '2px 7px', fontWeight: 700, whiteSpace: 'nowrap' }}>En llamada</span>}
                           {esDuplicado && <span title="Posible duplicado" style={{ flexShrink: 0, marginTop: '1px', fontSize: '9.5px', background: '#FEF3C7', color: '#92400E', border: '1px solid #F59E0B', borderRadius: '4px', padding: '1px 5px', fontWeight: 700, letterSpacing: '0' }}>DUP</span>}
                         </div>
                       </td>
@@ -448,7 +506,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
                         ) : <StarScore value={g?.score_recomendacion ?? null} />}
                       </td>
                       <td style={{ padding: '13px 18px' }}>
-                        <button onClick={() => setClienteSeleccionado(c)} className="btn-transition"
+                        <button onClick={() => abrir(c)} disabled={perfil.rol !== 'admin' && tomadoPorOtro(c)} title={tomadoPorOtro(c) ? 'Lo está gestionando otro asesor' : undefined} className="btn-transition"
                           style={{ background: accionPrimaria ? '#000' : '#F3F5F7', color: accionPrimaria ? '#fff' : '#14171A', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '13px', fontFamily: 'inherit', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {estado === 'encuestado' ? 'Ver' : 'Gestionar'}
                         </button>
@@ -485,7 +543,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
       {showNuevo && <NuevoClienteModal perfil={perfil} onClose={() => setShowNuevo(false)} onCreado={() => { setShowNuevo(false); setFiltroConReset('prioritarios'); if (onRefresh) onRefresh() }} />}
 
       {clienteSeleccionado && (
-        <GestionModal cliente={clienteSeleccionado} perfil={perfil} onClose={() => { setClienteSeleccionado(null); if (onRefresh) onRefresh() }} />
+        <GestionModal key={clienteSeleccionado.id} cliente={clienteSeleccionado} perfil={perfil} onGuardado={() => { guardo.current = true }} onClose={cerrarCaso} />
       )}
     </>
   )

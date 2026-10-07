@@ -27,7 +27,7 @@ export default function Sidebar({ perfil }: { perfil: Perfil | null }) {
     ]},
     { section: 'Supervisión', items: [
       { label: 'Métricas', href: '/metricas', icon: GridIcon },
-      ...(perfil?.rol === 'admin' ? [{ label: 'Gestión admin', href: '/admin', icon: SettingsIcon }] : []),
+      ...(perfil?.rol === 'admin' ? [{ label: 'Reportes', href: '/reportes', icon: TableIcon }, { label: 'Gestión admin', href: '/admin', icon: SettingsIcon }] : []),
     ]},
   ]
 

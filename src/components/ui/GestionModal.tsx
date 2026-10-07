@@ -6,7 +6,7 @@ import { Perfil, EstadoGestion, ESTADO_LABELS } from '@/types'
 import { fmtFecha, fmtFechaHora } from '@/lib/utils'
 import Toast from './Toast'
 
-interface Props { cliente: any; perfil: Perfil; onClose: () => void }
+interface Props { cliente: any; perfil: Perfil; onClose: () => void; onGuardado?: () => void }
 
 const ESTADOS: { value: EstadoGestion; label: string; color?: string }[] = [
   { value: 'encuestado', label: 'Encuestado', color: '#2D6A4F' },
@@ -37,7 +37,7 @@ const INIT = {
   score_contacto_posterior: null as number|null, score_recomendacion: null as number|null,
 }
 
-export default function GestionModal({ cliente, perfil, onClose }: Props) {
+export default function GestionModal({ cliente, perfil, onClose, onGuardado }: Props) {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [historial, setHistorial] = useState<any[]>([])
@@ -48,7 +48,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
   const [errors, setErrors] = useState<string[]>([])
   const [toast, setToast] = useState<{ msg: string; type: 'success'|'error' } | null>(null)
 
-  useEffect(() => { loadGestion() }, [])
+  useEffect(() => { loadGestion(); registrar('apertura', [cliente.apellido, cliente.nombre].filter(Boolean).join(', '), cliente.id) }, [])
 
   async function loadGestion() {
     const supabase = createClient()
@@ -167,6 +167,7 @@ export default function GestionModal({ cliente, perfil, onClose }: Props) {
       if (errInt) await supabase.from('intentos').insert({ cliente_id: payload.cliente_id, operador_id: perfil.id, estado: payload.estado }).then(() => {}, () => {})
 
       registrar('gestion', `${[cliente.apellido, cliente.nombre].filter(Boolean).join(', ')}: ${ESTADO_LABELS[payload.estado as EstadoGestion] ?? payload.estado}`, cliente.id)
+      if (onGuardado) onGuardado()
       setSaving(false)
       setToast({ msg: 'Gestión guardada correctamente', type: 'success' })
     } catch(err) {
