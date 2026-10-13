@@ -45,6 +45,23 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
   const [historial, setHistorial] = useState<any[]>([])
   const [showHistorial, setShowHistorial] = useState(false)
   const [bitacora, setBitacora] = useState<any[]>([])
+  const [revTel, setRevTel] = useState('')
+  const [revMotivo, setRevMotivo] = useState('')
+  const [revAbierto, setRevAbierto] = useState(false)
+  const [revError, setRevError] = useState('')
+
+  // Saca al cliente de la base activa (no se borra) o lo devuelve con el teléfono corregido
+  async function cambiarRevision(retirar: boolean) {
+    setRevError('')
+    if (retirar && !revMotivo.trim()) return setRevError('Contá por qué se retira, así se sabe qué hay que corregir.')
+    if (!retirar && !revTel.trim()) return setRevError('Cargá el teléfono correcto antes de devolverlo a la base.')
+    const cambios = retirar
+      ? { en_revision: true, revision_motivo: revMotivo.trim(), tomado_por: null, tomado_en: null }
+      : { en_revision: false, revision_motivo: null, telefono: revTel.trim() }
+    const { error } = await createClient().from('clientes').update(cambios).eq('id', cliente.id)
+    if (error) { console.error(error); return setRevError('No se pudo guardar el cambio. Intentá de nuevo.') }
+    onClose()
+  }
   const [gestionExistente, setGestionExistente] = useState<any>(null)
   const [form, setForm] = useState({ ...INIT })
   const [errors, setErrors] = useState<string[]>([])
@@ -246,6 +263,35 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
           {cliente.prioridad && (
             <div style={{ margin: '0 24px 14px', padding: '10px 14px', borderRadius: '10px', background: '#FFF6D6', border: '1px solid #FFC61A', fontSize: '13px' }}>
               <strong>Cliente prioritario.</strong> {cliente.prioridad_motivo}
+            </div>
+          )}
+          {cliente.en_revision && (
+            <div style={{ margin: '0 24px 14px', padding: '10px 14px', borderRadius: '10px', background: '#F3F5F7', border: '1px dashed #BCC3CB', fontSize: '13px' }}>
+              <strong>Fuera de la base activa.</strong> {cliente.revision_motivo}
+            </div>
+          )}
+          {perfil.rol === 'admin' && (
+            <div style={{ margin: '0 24px 14px' }}>
+              {!revAbierto ? (
+                <button className="btn" style={{ height: '30px', fontSize: '12.5px' }} onClick={() => setRevAbierto(true)}>
+                  {cliente.en_revision ? 'Corregir teléfono y devolver a la base' : 'Retirar de la base activa'}
+                </button>
+              ) : (
+                <div style={{ border: '1px solid #DDE1E6', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {cliente.en_revision ? (
+                    <input value={revTel} onChange={e => setRevTel(e.target.value)} inputMode="tel" placeholder="Teléfono correcto del cliente" aria-label="Teléfono correcto"
+                      style={{ flex: '1 1 200px', border: '1px solid #BCC3CB', borderRadius: '8px', padding: '7px 10px', fontSize: '13.5px' }} />
+                  ) : (
+                    <input value={revMotivo} onChange={e => setRevMotivo(e.target.value)} placeholder="Motivo (ej.: el teléfono es de la concesionaria)" aria-label="Motivo"
+                      style={{ flex: '1 1 260px', border: '1px solid #BCC3CB', borderRadius: '8px', padding: '7px 10px', fontSize: '13.5px' }} />
+                  )}
+                  <button className="btn btn-primary" style={{ height: '34px' }} onClick={() => cambiarRevision(!cliente.en_revision)}>
+                    {cliente.en_revision ? 'Guardar y devolver' : 'Retirar'}
+                  </button>
+                  <button className="btn" style={{ height: '34px' }} onClick={() => { setRevAbierto(false); setRevError('') }}>Cancelar</button>
+                  {revError && <div role="alert" style={{ width: '100%', fontSize: '12.5px', color: '#8B2020' }}>{revError}</div>}
+                </div>
+              )}
             </div>
           )}
           {bitacora.length > 0 && (

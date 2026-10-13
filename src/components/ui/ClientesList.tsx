@@ -42,10 +42,17 @@ const CAMPOS_VER = [
 
 const PAGE_SIZE = 50
 
-export default function ClientesList({ clientes, gestiones, perfil, stats, filtroInicial, onRefresh, loading }: Props) {
+export default function ClientesList({ clientes: base, gestiones, perfil, stats, filtroInicial, onRefresh, loading }: Props) {
   const router = useRouter()
   const [filtro, setFiltro] = useState(filtroInicial ?? 'todos')
   const [filtroFechaRellamar, setFiltroFechaRellamar] = useState('')
+  // Clientes retirados de la base activa (por ejemplo, teléfono de la concesionaria en vez del cliente)
+  const clientes = useMemo(() => base.filter((c: any) => !c.en_revision), [base])
+  const enRevision = useMemo(() => base.filter((c: any) => c.en_revision), [base])
+  // Filtro por fecha: de la última gestión o de la compra
+  const [tipoFecha, setTipoFecha] = useState<'gestion' | 'compra'>('gestion')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [search, setSearch] = useState('')
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any | null>(null)
   const [showCorrecciones, setShowCorrecciones] = useState(false)
@@ -147,9 +154,9 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
   }, [clientes])
 
   const filtrados = useMemo(() => {
-    let res = clientes.filter(c => {
+    let res = (filtro === 'revision' ? enRevision : clientes).filter(c => {
       const estado = getUltimoEstado(c)
-      const matchFiltro = filtro === 'todos' || (filtro === 'prioritarios' ? !!c.prioridad : estado === filtro)
+      const matchFiltro = filtro === 'todos' || filtro === 'revision' || (filtro === 'prioritarios' ? !!c.prioridad : estado === filtro)
       const q = search.toLowerCase().trim()
       const matchSearch = !q ||
         `${c.nombre ?? ''} ${c.apellido ?? ''}`.toLowerCase().includes(q) ||
@@ -162,6 +169,10 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
         matchFecha = g?.fecha_rellamar ? aInputLocal(g.fecha_rellamar).startsWith(filtroFechaRellamar) : false
       } else if (filtroFechaRellamar && estado !== 'rellamar') {
         matchFecha = false
+      }
+      if (fechaDesde || fechaHasta) {
+        const ref = tipoFecha === 'compra' ? (c.fecha_compra ? String(c.fecha_compra).slice(0, 10) : '') : (getUltimaGestion(c)?.updated_at ? aInputLocal(getUltimaGestion(c).updated_at).slice(0, 10) : '')
+        if (!ref || (fechaDesde && ref < fechaDesde) || (fechaHasta && ref > fechaHasta)) matchFecha = false
       }
       return matchFiltro && matchSearch && matchFecha
     })
@@ -181,7 +192,7 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
     })
 
     return res
-  }, [clientes, filtro, search, filtroFechaRellamar, sortCol, sortDir])
+  }, [clientes, enRevision, filtro, search, filtroFechaRellamar, tipoFecha, fechaDesde, fechaHasta, sortCol, sortDir])
 
   const setFiltroConReset = (f: string) => { setFiltro(f); setPagina(1); if (f !== 'rellamar') setFiltroFechaRellamar('') }
   const setSearchConReset = (s: string) => { setSearch(s); setPagina(1) }
@@ -386,6 +397,13 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
             </button>
           )}
 
+          {enRevision.length > 0 && (
+            <button onClick={() => setFiltroConReset('revision')} title="Clientes retirados de la base activa hasta corregir sus datos" className="btn-transition"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 13px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', border: '1px solid', borderColor: filtro === 'revision' ? '#14171A' : '#BCC3CB', background: filtro === 'revision' ? '#14171A' : '#fff', color: filtro === 'revision' ? '#fff' : '#565D66', fontFamily: 'inherit', whiteSpace: 'nowrap', borderStyle: filtro === 'revision' ? 'solid' : 'dashed' }}>
+              En revisión <span style={{ fontSize: '11px', opacity: 0.7 }}>{enRevision.length}</span>
+            </button>
+          )}
+
           {/* Más filtros desplegable */}
           <div style={{ position: 'relative' }}>
             <button onClick={() => setShowMasFiltros(!showMasFiltros)} className="btn-transition"
@@ -417,6 +435,25 @@ export default function ClientesList({ clientes, gestiones, perfil, stats, filtr
           )}
 
           <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#727A84', fontFamily: 'inherit' }}>{filtrados.length} registros</span>
+        </div>
+
+        {/* FILTRO POR FECHA */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <label htmlFor="tipo-fecha" style={{ fontSize: '12px', color: '#727A84' }}>Fecha:</label>
+          <select id="tipo-fecha" value={tipoFecha} onChange={e => { setTipoFecha(e.target.value as any); setPagina(1) }}
+            style={{ height: '32px', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 8px', fontSize: '13px', background: '#fff', color: '#14171A' }}>
+            <option value="gestion">de la última gestión</option>
+            <option value="compra">de compra</option>
+          </select>
+          <input type="date" aria-label="Desde" value={fechaDesde} max={fechaHasta || undefined} onChange={e => { setFechaDesde(e.target.value); setPagina(1) }}
+            style={{ height: '32px', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 8px', fontSize: '13px', background: '#fff', color: '#14171A' }} />
+          <span style={{ fontSize: '12px', color: '#727A84' }}>a</span>
+          <input type="date" aria-label="Hasta" value={fechaHasta} min={fechaDesde || undefined} onChange={e => { setFechaHasta(e.target.value); setPagina(1) }}
+            style={{ height: '32px', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '0 8px', fontSize: '13px', background: '#fff', color: '#14171A' }} />
+          {[['Hoy', 0], ['Últimos 7 días', 6]].map(([t, n]) => (
+            <button key={t as string} className="filter-pill" onClick={() => { const d = new Date(); const h = aInputLocal(d.toISOString()).slice(0, 10); d.setDate(d.getDate() - (n as number)); setFechaDesde(aInputLocal(d.toISOString()).slice(0, 10)); setFechaHasta(h); setPagina(1) }}>{t}</button>
+          ))}
+          {(fechaDesde || fechaHasta) && <button className="filter-pill" onClick={() => { setFechaDesde(''); setFechaHasta(''); setPagina(1) }}>Quitar fechas</button>}
         </div>
 
         {/* TABLA */}

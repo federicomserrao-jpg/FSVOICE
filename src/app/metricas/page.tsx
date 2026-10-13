@@ -67,10 +67,27 @@ export default function MetricasPage() {
             .range(from, to))
       } catch { intentos = null }
 
+      // Para separar datos nuevos de rellamados: qué clientes ya tenían intentos antes del período
+      let previos = new Set<string>()
+      if (intentos) {
+        try {
+          const ant = await fetchAll((from, to) =>
+            supabase.from('intentos').select('id, cliente_id')
+              .lt('created_at', new Date(`${dDia}T00:00:00`).toISOString())
+              .order('id', { ascending: true }).range(from, to))
+          previos = new Set(ant.map((x: any) => x.cliente_id))
+        } catch { /* sin historia previa */ }
+      }
+
       let porDia: any = null
       if (intentos) {
         // día → asesor → cliente → último estado de ese día (un cliente cuenta una vez por día y por asesor)
         const mapa: Record<string, Record<string, Map<string, string>>> = {}
+        // primer contacto de cada cliente con la base: el día y el asesor que lo tomó por primera vez
+        const primero: Record<string, string> = {}
+        intentos.forEach((i: any) => {
+          if (!previos.has(i.cliente_id) && !(i.cliente_id in primero)) primero[i.cliente_id] = `${iso(new Date(i.created_at))}|${i.operador_id}`
+        })
         intentos.forEach((i: any) => {
           const dia = iso(new Date(i.created_at))
           ;((mapa[dia] ??= {})[i.operador_id] ??= new Map()).set(i.cliente_id, i.estado)
@@ -78,16 +95,17 @@ export default function MetricasPage() {
         })
         const dias: string[] = []
         for (const x = new Date(`${h}T00:00:00`); iso(x) >= dDia; x.setDate(x.getDate() - 1)) dias.push(iso(x))
-        const cuenta = (m?: Map<string, string>) => {
+        const cuenta = (m: Map<string, string> | undefined, clave: string) => {
           const est = m ? Array.from(m.values()) : []
-          return { g: est.length, c: est.filter(e => ESTADOS_CONTACTADO.includes(e)).length, e: est.filter(e => e === 'encuestado').length }
+          const nuevos = m ? Array.from(m.keys()).filter(id => primero[id] === clave).length : 0
+          return { g: est.length, n: nuevos, r: est.length - nuevos, c: est.filter(e => ESTADOS_CONTACTADO.includes(e)).length, e: est.filter(e => e === 'encuestado').length }
         }
         const filas = dias.map(dia => {
-          const celdas: Record<string, { g: number; c: number; e: number }> = {}
-          const total = { g: 0, c: 0, e: 0 }
+          const celdas: Record<string, { g: number; n: number; r: number; c: number; e: number }> = {}
+          const total = { g: 0, n: 0, r: 0, c: 0, e: 0 }
           Object.keys(porAsesor).forEach(id => {
-            const c = cuenta(mapa[dia]?.[id]); celdas[id] = c
-            total.g += c.g; total.c += c.c; total.e += c.e
+            const c = cuenta(mapa[dia]?.[id], `${dia}|${id}`); celdas[id] = c
+            total.g += c.g; total.n += c.n; total.r += c.r; total.c += c.c; total.e += c.e
           })
           return { dia, celdas, total }
         })
@@ -246,11 +264,14 @@ export default function MetricasPage() {
                       <tbody>
                         {data.porDia.filas.map((f: any) => {
                           const fecha = new Date(`${f.dia}T12:00:00`)
-                          const celda = (c: { g: number; c: number; e: number }, fuerte = false) => (
+                          const celda = (c: { g: number; n: number; r: number; c: number; e: number }, fuerte = false) => (
                             <td style={{ ...td, verticalAlign: 'top' }}>
                               {c.g === 0 ? <span style={{ color: '#BCC3CB' }}>—</span> : (
                                 <>
                                   <div style={{ fontSize: fuerte ? '20px' : '18px', fontWeight: 700, fontStretch: '112%', lineHeight: 1.2 }}>{c.g} <span style={{ fontSize: '12px', fontWeight: 400, fontStretch: '100%', color: '#727A84' }}>datos</span></div>
+                                  <div style={{ fontSize: '12px', color: '#14171A' }}>
+                                    <strong>{c.n}</strong> nuevos, <strong>{c.r}</strong> rellamados
+                                  </div>
                                   <div style={{ fontSize: '12px', color: '#565D66' }}>
                                     <span style={{ color: '#1B4F8A', fontWeight: 600 }}>{c.c}</span> contactados, <span style={{ color: '#2D6A4F', fontWeight: 600 }}>{c.e}</span> encuestas
                                   </div>
@@ -264,7 +285,7 @@ export default function MetricasPage() {
                                 <div style={{ fontWeight: 600, textTransform: 'capitalize' }}>{fecha.toLocaleDateString('es-AR', { weekday: 'long' })}</div>
                                 <div style={{ fontSize: '12px', color: '#727A84' }}>{f.dia === hoy ? 'Hoy, ' : ''}{fmt(f.dia)}</div>
                               </td>
-                              {data.porAsesor.map((a: Asesor) => <Fragment key={a.id}>{celda(f.celdas[a.id] ?? { g: 0, c: 0, e: 0 })}</Fragment>)}
+                              {data.porAsesor.map((a: Asesor) => <Fragment key={a.id}>{celda(f.celdas[a.id] ?? { g: 0, n: 0, r: 0, c: 0, e: 0 })}</Fragment>)}
                               {celda(f.total, true)}
                             </tr>
                           )
@@ -273,7 +294,7 @@ export default function MetricasPage() {
                     </table>
                   </div>
                   <p style={{ fontSize: '12px', color: '#727A84', marginTop: '10px' }}>
-                    Datos = clientes distintos que el asesor gestionó ese día, haya atendido alguien o no. Si llamó dos veces al mismo cliente en el día, cuenta una vez. Se muestran como mínimo los últimos 7 días.
+                    Datos = clientes distintos que el asesor gestionó ese día, haya atendido alguien o no. Si llamó dos veces al mismo cliente en el día, cuenta una vez. Nuevos = clientes que se trabajaron por primera vez (primer barrido); rellamados = clientes que ya tenían algún intento anterior, de cualquier asesor. Se muestran como mínimo los últimos 7 días.
                   </p>
                 </>
               )}

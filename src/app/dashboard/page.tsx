@@ -37,11 +37,12 @@ export default function DashboardPage() {
         .range(from, to))
     setGestiones(g)
 
-    const total = lista.length
-    const contactados = lista.filter((x: any) => x.gestiones?.some((g: any) => g.estado === 'encuestado')).length
-    const rellamar = lista.filter((x: any) => x.gestiones?.some((g: any) => g.estado === 'rellamar')).length
-    const pendientes = lista.filter((x: any) => !x.gestiones?.length || x.gestiones?.every((g: any) => g.estado === 'pendiente')).length
-    const scores = lista.flatMap((x: any) => x.gestiones ?? []).filter((g: any) => g.score_recomendacion).map((g: any) => g.score_recomendacion)
+    const activos = lista.filter((x: any) => !x.en_revision) // los retirados de la base activa no cuentan
+    const total = activos.length
+    const contactados = activos.filter((x: any) => x.gestiones?.some((g: any) => g.estado === 'encuestado')).length
+    const rellamar = activos.filter((x: any) => x.gestiones?.some((g: any) => g.estado === 'rellamar')).length
+    const pendientes = activos.filter((x: any) => !x.gestiones?.length || x.gestiones?.every((g: any) => g.estado === 'pendiente')).length
+    const scores = activos.flatMap((x: any) => x.gestiones ?? []).filter((g: any) => g.score_recomendacion).map((g: any) => g.score_recomendacion)
     const avgScore = scores.length ? (scores.reduce((a: number, b: number) => a + b, 0) / scores.length).toFixed(1) : null
 
     setStats({ total, contactados, rellamar, pendientes, avgScore })

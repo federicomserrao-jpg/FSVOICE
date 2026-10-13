@@ -68,16 +68,24 @@ const REPORTES: { id: string; titulo: string; desc: string; generar: (d: string,
   },
   {
     id: 'productividad', titulo: 'Productividad por asesor y día',
-    desc: 'Clientes gestionados, contactados y encuestas de cada asesor, día por día.',
+    desc: 'Clientes gestionados por asesor y día, separando datos nuevos (primer barrido) de rellamados.',
     generar: async (d, h) => {
       const it: any[] = await traer('intentos', 'id, cliente_id, operador_id, estado, created_at', 'created_at', d, h)
       const nom = await nombres()
+      const supabase = createClient()
+      const ant: any[] = await fetchAll((from, to) => supabase.from('intentos').select('id, cliente_id').lt('created_at', new Date(`${d}T00:00:00`).toISOString()).order('id', { ascending: true }).range(from, to))
+      const previos = new Set(ant.map(x => x.cliente_id))
+      const primero: Record<string, string> = {}
+      it.forEach(i => { if (!previos.has(i.cliente_id) && !(i.cliente_id in primero)) primero[i.cliente_id] = `${dia(i.created_at)}|${i.operador_id}` })
       const g: Record<string, { n: number; m: Map<string, string> }> = {}
       it.forEach(i => { const x = (g[`${dia(i.created_at)}|${i.operador_id}`] ??= { n: 0, m: new Map() }); x.n++; x.m.set(i.cliente_id, i.estado) })
       return Object.entries(g).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => {
         const [fecha, uid] = k.split('|'); const est = Array.from(x.m.values())
+        const ids = Array.from(x.m.keys()); const nuevos = ids.filter(id => primero[id] === k)
         const c = est.filter(e => CONTACTADO.includes(e)).length, e = est.filter(s => s === 'encuestado').length
-        return { 'Día': fmtDia(fecha), 'Asesor': nom(uid), 'Clientes gestionados': est.length, 'Intentos (guardados)': x.n, 'Contactados': c, 'Encuestas': e,
+        const cN = nuevos.filter(id => CONTACTADO.includes(x.m.get(id)!)).length
+        return { 'Día': fmtDia(fecha), 'Asesor': nom(uid), 'Clientes gestionados': est.length, 'Datos nuevos': nuevos.length, 'Datos rellamados': est.length - nuevos.length,
+          'Intentos (guardados)': x.n, 'Contactados': c, 'Contactados nuevos': cN, 'Contactados rellamados': c - cN, 'Encuestas': e,
           '% contacto': est.length ? Math.round(c / est.length * 100) : 0, '% encuesta sobre contactados': c ? Math.round(e / c * 100) : 0 }
       })
     },
