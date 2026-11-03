@@ -30,6 +30,54 @@ async function nombres() {
   return (id: string) => m[id] ?? 'Usuario eliminado'
 }
 
+// Normaliza la marca para que "GWM", "Gwm " y "gwm" cuenten juntas
+const marcaDe = (m?: string | null) => (m ?? '').trim().toUpperCase() || 'Sin marca'
+
+// Reporte por marca (o por concesionaria + marca). La base completa no depende de las fechas; lo gestionado y la encuesta sí.
+async function porMarca(d: string, h: string, conConcesionaria: boolean): Promise<Fila[]> {
+  const supabase = createClient()
+  const base: any[] = await fetchAll((from, to) => supabase.from('clientes').select('id, marca, concesionaria, en_revision').order('id', { ascending: true }).range(from, to))
+  const gs: any[] = await traer('gestiones', 'id, estado, score_vendedor, score_administrativo, score_recomendacion, satisfaccion_equipamiento, coloco_accesorios, updated_at, cliente:clientes(marca, concesionaria)', 'updated_at', d, h)
+  const clave = (c: any) => conConcesionaria ? `${c?.concesionaria ?? 'Sin asignar'}|${marcaDe(c?.marca)}` : marcaDe(c?.marca)
+  const enBase: Record<string, number> = {}
+  base.filter(c => !c.en_revision).forEach(c => { const k = clave(c); enBase[k] = (enBase[k] ?? 0) + 1 })
+  const m: Record<string, any[]> = {}
+  gs.forEach(g => { (m[clave(g.cliente)] ??= []).push(g) })
+  const n = (l: any[], k: string) => l.map(g => g[k]).filter((v: any) => typeof v === 'number')
+  const pct = (a: number, b: number) => b ? Math.round(a / b * 100) : 0
+  const claves = Array.from(new Set([...Object.keys(enBase), ...Object.keys(m)]))
+  return claves.map(k => {
+    const l = m[k] ?? []
+    const contactados = l.filter(g => CONTACTADO.includes(g.estado))
+    const enc = l.filter(g => g.estado === 'encuestado')
+    const rec = n(enc, 'score_recomendacion')
+    const equip = enc.filter(g => g.satisfaccion_equipamiento)
+    const acc = enc.filter(g => g.coloco_accesorios)
+    const [conc, marca] = conConcesionaria ? k.split('|') : ['', k]
+    return {
+      ...(conConcesionaria ? { 'Concesionaria': conc } : {}),
+      'Marca': marca,
+      'Clientes en la base': enBase[k] ?? 0,
+      'Gestionados': l.length,
+      'Contactados': contactados.length,
+      '% contacto': pct(contactados.length, l.length),
+      'Encuestas': enc.length,
+      '% encuesta sobre contactados': pct(enc.length, contactados.length),
+      'Sin contacto': l.filter(g => g.estado === 'sin_contacto').length,
+      'Datos erróneos / nro. equivocado': l.filter(g => ['dato_erroneo', 'numero_equivocado'].includes(g.estado)).length,
+      'No acepta encuesta': l.filter(g => g.estado === 'no_acepta_encuesta').length,
+      'Atención vendedor': prom(n(enc, 'score_vendedor')),
+      'Atención administrativa': prom(n(enc, 'score_administrativo')),
+      'Recomendación': prom(rec),
+      'Detractores (1-2)': rec.filter(v => v <= 2).length,
+      'Promotores (5)': rec.filter(v => v === 5).length,
+      '% detractores': pct(rec.filter(v => v <= 2).length, rec.length),
+      '% equipamiento excelente o bueno': pct(equip.filter(g => ['excelente', 'bueno'].includes(g.satisfaccion_equipamiento)).length, equip.length),
+      '% colocó accesorios': pct(acc.filter(g => g.coloco_accesorios === 'si').length, acc.length),
+    }
+  }).sort((a: any, b: any) => (conConcesionaria ? String(a['Concesionaria']).localeCompare(String(b['Concesionaria'])) : 0) || b['Encuestas'] - a['Encuestas'] || b['Clientes en la base'] - a['Clientes en la base'])
+}
+
 const REPORTES: { id: string; titulo: string; desc: string; generar: (d: string, h: string) => Promise<Fila[]> }[] = [
   {
     id: 'tiempos', titulo: 'Tiempos por asesor',
@@ -121,6 +169,16 @@ const REPORTES: { id: string; titulo: string; desc: string; generar: (d: string,
           'Recomendación': prom(rec), 'Detractores (1-2)': rec.filter(v => v <= 2).length, 'Promotores (5)': rec.filter(v => v === 5).length }
       }).sort((a, b) => Number(b['Encuestas']) - Number(a['Encuestas']))
     },
+  },
+  {
+    id: 'marcas', titulo: 'Resultados por marca',
+    desc: 'Estado de la base y resultados de encuesta de cada marca de vehículo, para comparar entre marcas.',
+    generar: (d, h) => porMarca(d, h, false),
+  },
+  {
+    id: 'concesionaria_marca', titulo: 'Concesionaria y marca',
+    desc: 'Lo mismo que por marca, abierto por concesionaria: cada combinación en una fila.',
+    generar: (d, h) => porMarca(d, h, true),
   },
   {
     id: 'bitacora', titulo: 'Bitácora de llamadas',
