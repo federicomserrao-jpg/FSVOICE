@@ -356,6 +356,12 @@ export default function GestionModal({ cliente, perfil, onClose, onGuardado }: P
                     { label: 'Modelo', value: cliente.modelo ?? '—', field: 'modelo_verificado', corrField: 'modelo_corregido' },
                   ].map(item => <VerifyRow key={item.field} {...item} type="text" verified={(form as any)[item.field]} corregido={(form as any)[item.corrField]} onVerify={(v: boolean) => setField(item.field, v)} onCorrect={(v: string) => setField(item.corrField, v)} />)}
                 </div>
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ fontSize: '13px', marginBottom: '5px' }}>Nro. de chasis</div>
+                  <div style={{ background: '#F3F5F7', border: '1px solid #DDE1E6', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', letterSpacing: '0.04em', fontVariantNumeric: 'tabular-nums', color: cliente.chasis ? '#14171A' : '#727A84', userSelect: 'all' }}>
+                    {cliente.chasis || 'Sin dato en la base'}
+                  </div>
+                </div>
               </div>
               <div style={{ padding: '16px 24px', background: '#F3F5F7', borderBottom: '1px solid #DDE1E6' }}>
                 <STitle>Estado de la gestión</STitle>

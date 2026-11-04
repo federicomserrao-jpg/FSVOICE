@@ -221,7 +221,7 @@ export default function ClientesList({ clientes: base, gestiones, perfil, stats,
       'Tipo Doc': formatDocumento(g.cliente?.dni).label, 'Documento': formatDocumento(g.cliente?.dni).value,
       'Email original': g.cliente?.email ?? '', 'Email corregido': g.email_corregido ?? '',
       'Teléfono original': g.cliente?.telefono ?? '', 'Teléfono corregido': g.telefono_corregido ?? '',
-      'Concesionaria': g.cliente?.concesionaria ?? '', 'Marca': g.cliente?.marca ?? '', 'Modelo': g.cliente?.modelo ?? '',
+      'Concesionaria': g.cliente?.concesionaria ?? '', 'Marca': g.cliente?.marca ?? '', 'Modelo': g.cliente?.modelo ?? '', 'Nro. de chasis': g.cliente?.chasis ?? '',
       'Patente': g.cliente?.patente ?? '', 'Estado': ESTADO_LABELS[g.estado as EstadoGestion] ?? g.estado,
       'Operador': g.operador?.nombre ?? '', 'Fecha gestión': fmtFechaHora(g.updated_at),
       'Fecha rellamar': fmtFechaHora(g.fecha_rellamar), 'Motivo rellamar': g.motivo_rellamar ?? '',
@@ -238,7 +238,7 @@ export default function ClientesList({ clientes: base, gestiones, perfil, stats,
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Gestiones')
-    ws['!cols'] = Array(32).fill({ wch: 20 })
+    ws['!cols'] = Array(33).fill({ wch: 20 })
     const fecha = new Date().toLocaleDateString('es-AR').replace(/\//g, '-')
     XLSX.writeFile(wb, `GrupoAntelo_Gestiones_${fecha}.xlsx`)
     registrar('exportacion', `${gestiones.length} gestiones`)

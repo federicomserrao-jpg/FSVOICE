@@ -146,7 +146,7 @@ const REPORTES: { id: string; titulo: string; desc: string; generar: (d: string,
       return gs.map(g => ({
         'Apellido': g.cliente?.apellido ?? '', 'Nombre': g.cliente?.nombre ?? '', 'Tipo doc': formatDocumento(g.cliente?.dni).label, 'Documento': formatDocumento(g.cliente?.dni).value,
         'Teléfono': g.cliente?.telefono ?? '', 'Teléfono corregido': g.telefono_corregido ?? '', 'Email': g.cliente?.email ?? '', 'Email corregido': g.email_corregido ?? '',
-        'Concesionaria': g.cliente?.concesionaria ?? '', 'Marca': g.cliente?.marca ?? '', 'Modelo': g.cliente?.modelo ?? '', 'Prioritario': g.cliente?.prioridad ? 'Sí' : '',
+        'Concesionaria': g.cliente?.concesionaria ?? '', 'Marca': g.cliente?.marca ?? '', 'Modelo': g.cliente?.modelo ?? '', 'Nro. de chasis': g.cliente?.chasis ?? '', 'Prioritario': g.cliente?.prioridad ? 'Sí' : '',
         'Estado': estado(g.estado), 'Asesor': g.operador?.nombre ?? '', 'Fecha gestión': fmtFechaHora(g.updated_at), 'Fecha rellamar': g.fecha_rellamar ? fmtFechaHora(g.fecha_rellamar) : '', 'Motivo rellamar': g.motivo_rellamar ?? '',
         'Atención vendedor (1-5)': g.score_vendedor ?? '', 'Vendedor respondió consultas': g.vendedor_respondio_consultas ?? '', 'Atención administrativa (1-5)': g.score_administrativo ?? '',
         'Info funcionalidades': g.info_vehiculo_clara ?? '', 'Explicaron funciones': g.explicaron_funciones ?? '', 'Colocó accesorios': g.coloco_accesorios ?? '', 'Accesorios colocados': g.accesorios_detalle ?? '',
