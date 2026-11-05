@@ -14,7 +14,7 @@ import * as XLSX from 'xlsx'
 interface Props {
   clientes: any[]; gestiones: any[]; perfil: Perfil
   stats: { total: number; contactados: number; rellamar: number; pendientes: number; avgScore: string | null }
-  filtroInicial?: string; onRefresh?: () => void; loading?: boolean
+  filtroInicial?: string; onRefresh?: () => void; onRefreshCliente?: (id: string) => void; loading?: boolean
 }
 
 const FILTROS_PRIMARIOS = ['todos','pendiente','encuestado','rellamar','sin_contacto']
@@ -42,7 +42,7 @@ const CAMPOS_VER = [
 
 const PAGE_SIZE = 50
 
-export default function ClientesList({ clientes: base, gestiones, perfil, stats, filtroInicial, onRefresh, loading }: Props) {
+export default function ClientesList({ clientes: base, gestiones, perfil, stats, filtroInicial, onRefresh, onRefreshCliente, loading }: Props) {
   const router = useRouter()
   const [filtro, setFiltro] = useState(filtroInicial ?? 'todos')
   const [filtroFechaRellamar, setFiltroFechaRellamar] = useState('')
@@ -101,8 +101,8 @@ export default function ClientesList({ clientes: base, gestiones, perfil, stats,
     if (c && perfil.rol !== 'admin') {
       try { await createClient().from('clientes').update({ tomado_por: null, tomado_en: null }).eq('id', c.id).eq('tomado_por', perfil.id) } catch {}
     }
+    if (c && onRefreshCliente) onRefreshCliente(c.id); else if (onRefresh) onRefresh()
     if (enCola.current && guardo.current) { await siguiente() } else { enCola.current = false }
-    if (onRefresh) onRefresh()
   }
   const [sortCol, setSortCol] = useState<string>('apellido')
   const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc')
